@@ -9,8 +9,10 @@ out/
 .shelf/
 .vscode/
 
+
 # Java/Maven
 target/
+application/target/
 !.mvn/wrapper/maven-wrapper.jar
 dependency-reduced-pom.xml
 *.class
