@@ -41,7 +41,7 @@ class ProgrammazioneServiceIntegrationTest {
             stmt.execute("SET REFERENTIAL_INTEGRITY TRUE");
 
             // seed minimo per i test
-            stmt.execute("INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Moviplex', 'Via Roma', 'Napoli', '80100');");
+            stmt.execute("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Moviplex', 'Via Roma', 'Napoli', '80100');");
             stmt.execute("INSERT INTO film (id, titolo, durata, genere, classificazione, descrizione, is_proiettato) " +
                     "VALUES (1, 'Film Test', 120, 'Azione', 'T', 'Descrizione di test', TRUE);");
             stmt.execute("INSERT INTO sala (id, numero, capienza, id_sede) VALUES (1, 1, 100, 1);");

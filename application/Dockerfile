@@ -19,3 +19,4 @@ COPY docker/tomcat/ROOT.xml $CATALINA_HOME/conf/Catalina/localhost/ROOT.xml
 
 EXPOSE 8080
 CMD ["catalina.sh", "run"]
+

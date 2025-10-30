@@ -41,7 +41,7 @@ public class SlotDAOTest {
             stmt.execute(cleanupScript);
 
             String setupScript = """
-                        INSERT INTO sede (id, nome, via, città, cap) 
+                        INSERT INTO sede (id, nome, via, citta, cap) 
                         VALUES (1, 'CineNow', 'Via Roma', 'Napoli', '80100');
                     
                         INSERT INTO sala (id, id_sede, numero, capienza) 

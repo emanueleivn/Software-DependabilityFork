@@ -41,7 +41,7 @@ public class PrenotazioneDAOTest {
                         INSERT INTO cliente (email, nome, cognome) VALUES ('test@example.com', 'Test', 'Test');
                         INSERT INTO film (id, titolo, genere, classificazione, durata, locandina, descrizione, is_proiettato) 
                         VALUES (1, 'Test Film', 'Drama', 'PerTutti', 120, 'path', 'Descrizione film', TRUE);
-                        INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Sede Test', 'Via Test', 'Città Test', '12345');
+                        INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Sede Test', 'Via Test', 'Citta Test', '12345');
                         INSERT INTO sala (id, id_sede, numero, capienza) VALUES (1, 1, 1, 100);
                         INSERT INTO slot (id, ora_inizio) VALUES (1, '18:00:00');
                         INSERT INTO proiezione (id, data, id_film, id_sala, id_orario) 

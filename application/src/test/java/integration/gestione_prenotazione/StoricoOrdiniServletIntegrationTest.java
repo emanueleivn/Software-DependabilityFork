@@ -42,7 +42,7 @@ public class StoricoOrdiniServletIntegrationTest {
             conn.createStatement().execute("""
             INSERT INTO utente (email, password, ruolo) VALUES ('test@test.com', 'password', 'cliente');
             INSERT INTO cliente (email, nome, cognome) VALUES ('test@test.com', 'Mario', 'Rossi');
-            INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Sede Test', 'Via Roma', 'Roma', '00100');
+            INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Sede Test', 'Via Roma', 'Roma', '00100');
             INSERT INTO sala (id, id_sede, numero, capienza) VALUES (1, 1, 1, 100);
             INSERT INTO film (id, titolo, genere, classificazione, durata, descrizione, is_proiettato) 
                 VALUES (1, 'Film di Test', 'Azione', 'T', 120, 'Descrizione del film', TRUE);

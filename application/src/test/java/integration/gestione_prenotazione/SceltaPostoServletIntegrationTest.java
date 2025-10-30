@@ -83,7 +83,7 @@ public class SceltaPostoServletIntegrationTest {
                       INSERT INTO cliente (email, nome, cognome) VALUES ('cliente@example.com', 'Mario', 'Rossi');
                       
                       -- Inserimento sede
-                      INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Cinema Centrale', 'Via Roma', 'Napoli', '80100');
+                      INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Cinema Centrale', 'Via Roma', 'Napoli', '80100');
                       
                       -- Inserimento sala
                       INSERT INTO sala (id, id_sede, numero, capienza) VALUES (1, 1, 1, 100);

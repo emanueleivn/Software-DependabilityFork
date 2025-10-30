@@ -43,7 +43,7 @@ public class CatalogoSedeServletIntegrationTest {
             DELETE FROM film;
             DELETE FROM sede;
 
-            INSERT INTO sede (id, nome, via, città, cap) VALUES 
+            INSERT INTO sede (id, nome, via, citta, cap) VALUES 
             (1, 'Mercogliano', 'Via Roma', 'Avellino', '83013'),
             (2, 'Laquila', 'Via Abruzzo', 'L''Aquila', '67100');
 

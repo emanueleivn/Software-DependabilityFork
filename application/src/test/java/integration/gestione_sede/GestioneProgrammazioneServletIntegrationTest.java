@@ -51,7 +51,7 @@ public class GestioneProgrammazioneServletIntegrationTest {
                 DELETE FROM sede;
                 DELETE FROM slot;
 
-                INSERT INTO sede (id, nome, via, città, cap) VALUES 
+                INSERT INTO sede (id, nome, via, citta, cap) VALUES 
                 (1, 'Cinema Centrale', 'Via Roma', 'Napoli', '80100');
 
                 INSERT INTO sala (id, id_sede, numero, capienza) VALUES 

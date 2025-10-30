@@ -34,7 +34,7 @@ public class SalaDAOTest {
             conn.createStatement().execute("SET REFERENTIAL_INTEGRITY TRUE");
 
             String insertData = """
-                        INSERT INTO sede (id, nome, via, città, cap) VALUES 
+                        INSERT INTO sede (id, nome, via, citta, cap) VALUES 
                             (1, 'Sede 1', 'Via Roma', 'Napoli', '80100');
                     
                         INSERT INTO sala (id, id_sede, numero, capienza) VALUES 

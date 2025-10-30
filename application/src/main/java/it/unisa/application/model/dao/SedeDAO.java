@@ -29,13 +29,13 @@ public class SedeDAO {
       @   ensures (\result != null) ==> (\result.getId() == id);
       @*/
     public Sede retrieveById(int id) {
-        String sql = "SELECT s.id, s.nome, s.via, s.città, s.cap FROM sede s WHERE s.id = ?";
+        String sql = "SELECT s.id, s.nome, s.via, s.citta, s.cap FROM sede s WHERE s.id = ?";
         try (Connection connection = ds.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String indirizzo = rs.getString("via") + ", " + rs.getString("città") + ", " + rs.getString("cap");
+                String indirizzo = rs.getString("via") + ", " + rs.getString("citta") + ", " + rs.getString("cap");
                 return new Sede(rs.getInt("id"), rs.getString("nome"), indirizzo);
             }
         } catch (SQLException e) {
@@ -55,7 +55,7 @@ public class SedeDAO {
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ResultSet rs = ps.executeQuery();
             while (rs.next()) {
-                String indirizzo = rs.getString("via") + ", " + rs.getString("città") + ", " + rs.getString("cap");
+                String indirizzo = rs.getString("via") + ", " + rs.getString("citta") + ", " + rs.getString("cap");
                 sedi.add(new Sede(rs.getInt("id"), rs.getString("nome"), indirizzo));
             }
         } catch (SQLException e) {
@@ -95,13 +95,13 @@ public class SedeDAO {
       @   ensures (\result != null) ==> (\result.getNome() != null && \result.getIndirizzo() != null && \result.getId() > 0);
       @*/
     public Sede retrieveByGestoreEmail(String email) {
-        String sql = "SELECT s.id, s.nome, s.via, s.città, s.cap FROM sede s JOIN gest_sede gs ON s.id = gs.id_sede WHERE gs.email = ?";
+        String sql = "SELECT s.id, s.nome, s.via, s.citta, s.cap FROM sede s JOIN gest_sede gs ON s.id = gs.id_sede WHERE gs.email = ?";
         try (Connection connection = ds.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setString(1, email);
             ResultSet rs = ps.executeQuery();
             if (rs.next()) {
-                String indirizzo = rs.getString("via") + ", " + rs.getString("città") + ", " + rs.getString("cap");
+                String indirizzo = rs.getString("via") + ", " + rs.getString("citta") + ", " + rs.getString("cap");
                 return new Sede(rs.getInt("id"), rs.getString("nome"), indirizzo);
             }
         } catch (SQLException e) {

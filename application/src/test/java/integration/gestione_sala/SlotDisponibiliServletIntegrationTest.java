@@ -44,7 +44,7 @@ public class SlotDisponibiliServletIntegrationTest {
             stmt.execute("DELETE FROM slot;");
             stmt.execute("DELETE FROM sede;");
 
-            stmt.execute("INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Sede Test', 'Via Roma', 'Napoli', '80100');");
+            stmt.execute("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Sede Test', 'Via Roma', 'Napoli', '80100');");
             stmt.execute("INSERT INTO film (id, titolo, durata, genere, classificazione, descrizione, is_proiettato) VALUES (1, 'Film Test', 120, 'Azione', 'PG', 'Test Description', true);");
             stmt.execute("INSERT INTO sala (id, numero, capienza, id_sede) VALUES (1, 1, 100, 1);");
             stmt.execute("INSERT INTO slot (id, ora_inizio) VALUES (1, '18:00:00');");

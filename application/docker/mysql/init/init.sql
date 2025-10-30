@@ -1,4 +1,7 @@
+CREATE DATABASE IF NOT EXISTS cinenow;
+
 USE cinenow;
+
 
 CREATE TABLE utente (
                         email VARCHAR(255) PRIMARY KEY,
@@ -20,7 +23,7 @@ CREATE TABLE sede (
                       id INT PRIMARY KEY AUTO_INCREMENT,
                       nome VARCHAR(255) NOT NULL,
                       via VARCHAR(255) NOT NULL,
-                      città VARCHAR(255) NOT NULL,
+                      citta VARCHAR(255) NOT NULL,
                       cap CHAR(5) NOT NULL
 );
 
@@ -151,7 +154,7 @@ VALUES
     ('cliente2@email.com', 'Giulia', 'Bianchi'),
     ('cliente3@email.com', 'Carlo', 'Neri');
 
-INSERT INTO sede (nome, via, città, cap)
+INSERT INTO sede (nome, via, citta, cap)
 VALUES
     ('Movieplex Mercogliano', 'Via Centrale, 10', 'Mercogliano', '12345'),
     ("Movieplex L'Aquila", 'Via Roma, 10', "L'Aquila", '67891');

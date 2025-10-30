@@ -52,7 +52,7 @@ public class SedeDAOTest {
                         ('gestore1@example.com', 'password1', 'gestore'),
                         ('gestore2@example.com', 'password2', 'gestore');
                     
-                        INSERT INTO sede (id, nome, via, città, cap) VALUES
+                        INSERT INTO sede (id, nome, via, citta, cap) VALUES
                         (1, 'CineNow Napoli', 'Via Roma', 'Napoli', '80100'),
                         (2, 'CineNow Milano', 'Corso Buenos Aires', 'Milano', '20100');
                     

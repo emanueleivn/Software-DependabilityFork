@@ -55,7 +55,7 @@ public class PostoProiezioneDAOTest {
                         INSERT INTO cliente (email, nome, cognome) 
                         VALUES ('test@example.com', 'Test', 'User');
                     
-                        INSERT INTO sede (id, nome, via, città, cap) 
+                        INSERT INTO sede (id, nome, via, citta, cap) 
                         VALUES (1, 'CineNow', 'Via Roma', 'Napoli', '80100');
                     
                         INSERT INTO sala (id, id_sede, numero, capienza) 

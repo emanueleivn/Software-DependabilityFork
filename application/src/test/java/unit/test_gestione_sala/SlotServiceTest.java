@@ -48,7 +48,7 @@ class SlotServiceTest {
             stmt.execute("DELETE FROM sala;");
             stmt.execute("DELETE FROM sede;");
             stmt.execute("DELETE FROM film;");
-            stmt.execute("INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'CineNow Napoli', 'Via Roma', 'Napoli', '80100');");
+            stmt.execute("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'CineNow Napoli', 'Via Roma', 'Napoli', '80100');");
             stmt.execute("INSERT INTO film (id, titolo, durata, genere, classificazione, descrizione, is_proiettato) " +
                     "VALUES (1, 'Film Test', 120, 'Azione', 'PG-13', 'Descrizione di test', true);");
             stmt.execute("INSERT INTO sala (id, numero, capienza, id_sede) VALUES (1, 1, 100, 1);");

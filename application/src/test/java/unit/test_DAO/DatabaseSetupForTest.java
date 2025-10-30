@@ -39,7 +39,7 @@ public class DatabaseSetupForTest {
                         id INT PRIMARY KEY AUTO_INCREMENT,
                         nome VARCHAR(255) NOT NULL,
                         via VARCHAR(255) NOT NULL,
-                        città VARCHAR(255) NOT NULL,
+                        citta VARCHAR(255) NOT NULL,
                         cap CHAR(5) NOT NULL
                     );
 

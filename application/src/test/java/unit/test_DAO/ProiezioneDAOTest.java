@@ -31,7 +31,7 @@ public class ProiezioneDAOTest {
             conn.createStatement().execute("DELETE FROM posto_proiezione;");
 
             conn.createStatement().executeUpdate("INSERT INTO film (id, titolo, durata, genere, classificazione, descrizione) VALUES (1, 'Test Film', 120, 'Commedia', 'T', 'Film di test');");
-            conn.createStatement().executeUpdate("INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Test Sede', 'Via Test', 'Test City', '12345');");
+            conn.createStatement().executeUpdate("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Test Sede', 'Via Test', 'Test City', '12345');");
             conn.createStatement().executeUpdate("INSERT INTO sala (id, numero, capienza, id_sede) VALUES (1, 1, 100, 1);");
             conn.createStatement().executeUpdate("INSERT INTO slot (id, ora_inizio) VALUES (1, '14:00:00');");
             conn.createStatement().executeUpdate("INSERT INTO slot (id, ora_inizio) VALUES (2, '16:00:00');");

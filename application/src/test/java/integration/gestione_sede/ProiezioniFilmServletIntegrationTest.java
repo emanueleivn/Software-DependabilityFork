@@ -48,7 +48,7 @@ public class ProiezioniFilmServletIntegrationTest {
             s.execute("SET REFERENTIAL_INTEGRITY TRUE");
 
             // seed dati
-            s.execute("INSERT INTO sede (id, nome, via, città, cap) VALUES (1, 'Cinema Centrale', 'Via Roma', 'Napoli', '80100')");
+            s.execute("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Cinema Centrale', 'Via Roma', 'Napoli', '80100')");
             s.execute("INSERT INTO film (id, titolo, genere, classificazione, durata, descrizione, is_proiettato) " +
                     "VALUES (1, 'Avatar', 'Sci-fi', 'T', 180, 'Film di fantascienza', TRUE)");
             s.execute("INSERT INTO sala (id, id_sede, numero, capienza) VALUES (1, 1, 1, 100)");
