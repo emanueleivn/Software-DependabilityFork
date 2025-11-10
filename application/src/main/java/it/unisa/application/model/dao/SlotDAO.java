@@ -35,6 +35,10 @@ public class SlotDAO {
     }
 
     public Slot retrieveByProiezione(Proiezione proiezione){
+        if (proiezione == null || proiezione.getOrarioProiezione() == null) {
+            logger.warning("Proiezione o slot associato null");
+            return null;
+        }
         String sql = "SELECT * FROM slot WHERE id = ?";
         try (Connection connection = ds.getConnection();
              PreparedStatement ps = connection.prepareStatement(sql)) {

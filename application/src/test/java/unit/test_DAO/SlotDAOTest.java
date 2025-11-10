@@ -4,103 +4,198 @@ import it.unisa.application.database_connection.DataSourceSingleton;
 import it.unisa.application.model.dao.SlotDAO;
 import it.unisa.application.model.entity.Proiezione;
 import it.unisa.application.model.entity.Slot;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Connection;
-import java.sql.Statement;
+import javax.sql.DataSource;
+import java.sql.*;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-public class SlotDAOTest {
-    private SlotDAO slotDAO;
+/**
+ * Test di unità per la classe SlotDAO.
+ */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+class SlotDAOTest {
 
-    @BeforeAll
-    static void globalSetup() {
-        DatabaseSetupForTest.configureH2DataSource();
-    }
+    @Mock private DataSource mockDataSource;
+    @Mock private Connection mockConnection;
+    @Mock private PreparedStatement mockPreparedStatement;
+    @Mock private ResultSet mockResultSet;
+
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
 
     @BeforeEach
-    void setup() {
-        slotDAO = new SlotDAO();
-        populateDatabase();
+    void setUp() throws Exception {
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        lenient().when(mockDataSource.getConnection()).thenReturn(mockConnection);
     }
 
-    private void populateDatabase() {
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection();
-             Statement stmt = conn.createStatement()) {
-            String cleanupScript = """
-                        DELETE FROM proiezione;
-                        DELETE FROM slot;
-                        DELETE FROM film;
-                        DELETE FROM sala;
-                        DELETE FROM sede;
-                    """;
-            stmt.execute(cleanupScript);
-
-            String setupScript = """
-                        INSERT INTO sede (id, nome, via, citta, cap) 
-                        VALUES (1, 'CineNow', 'Via Roma', 'Napoli', '80100');
-                    
-                        INSERT INTO sala (id, id_sede, numero, capienza) 
-                        VALUES (1, 1, 1, 100);
-                    
-                        INSERT INTO film (id, titolo, genere, classificazione, durata, locandina, descrizione, is_proiettato)
-                        VALUES (1, 'Film Test', 'Azione', 'PG-13', 120, 'locandina.jpg', 'Descrizione di test', false);
-                    
-                        INSERT INTO slot (id, ora_inizio) 
-                        VALUES 
-                        (1, '10:00:00'),
-                        (2, '12:00:00'),
-                        (3, '15:00:00'),
-                        (4, '18:00:00');
-                    
-                        INSERT INTO proiezione (id, data, id_film, id_sala, id_orario) 
-                        VALUES
-                        (1, '2025-01-01', 1, 1, 2),
-                        (2, '2025-01-01', 1, 1, 4);
-                    """;
-            stmt.execute(setupScript);
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nel setup del database per i test", e);
-        }
+    @AfterEach
+    void tearDown() {
+        mockedDataSourceSingleton.close();
     }
 
-    @Test
-    void testRetrieveById() {
-        Slot slot = slotDAO.retrieveById(1);
-        assertNotNull(slot, "Il metodo retrieveById dovrebbe restituire un oggetto Slot");
-        assertEquals(1, slot.getId(), "L'ID dello slot dovrebbe essere 1");
-        assertEquals("10:00:00", slot.getOraInizio().toString(), "L'ora dello slot dovrebbe essere 10:00:00");
-        System.out.println("Slot recuperato: ID=" + slot.getId() + ", Ora=" + slot.getOraInizio());
+    // -----------------------------------------------------------
+    // TEST: retrieveById()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnSlotWhenIdExists(RepetitionInfo repetitionInfo) throws Exception {
+        Time oraInizio = Time.valueOf("14:30:00");
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getTime("ora_inizio")).thenReturn(oraInizio);
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveById(1);
+
+        assertNotNull(result);
+        assertEquals(1, result.getId());
+        assertEquals(oraInizio, result.getOraInizio());
+        verify(mockPreparedStatement).setInt(1, 1);
+        verify(mockPreparedStatement).executeQuery();
     }
 
-    @Test
-    void testRetrieveByProiezione() {
-        Proiezione proiezione = new Proiezione();
-        Slot slot = new Slot();
-        slot.setId(2);
-        proiezione.setOrarioProiezione(slot);
-        Slot retrievedSlot = slotDAO.retrieveByProiezione(proiezione);
-        assertNotNull(retrievedSlot, "Il metodo retrieveByProiezione dovrebbe restituire uno slot");
-        assertEquals(2, retrievedSlot.getId(), "L'ID dello slot dovrebbe essere 2");
-        assertEquals("12:00:00", retrievedSlot.getOraInizio().toString(), "L'ora dello slot dovrebbe essere 12:00:00");
-        System.out.println("Slot recuperato dalla proiezione: ID=" + retrievedSlot.getId() + ", Ora=" + retrievedSlot.getOraInizio());
+    @RepeatedTest(5)
+    void shouldReturnNullWhenSlotIdNotFound(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveById(10);
+
+        assertNull(result);
+        verify(mockPreparedStatement).setInt(1, 10);
     }
 
-    @Test
-    void testRetrieveAllSlots() {
-        List<Slot> slots = slotDAO.retrieveAllSlots();
-        assertNotNull(slots, "La lista degli slot non dovrebbe essere null");
-        assertEquals(4, slots.size(), "Dovrebbero esserci 4 slot nel database");
-        for (Slot slot : slots) {
-            System.out.println("Slot recuperato: ID=" + slot.getId() + ", Ora=" + slot.getOraInizio());
-        }
-        assertEquals(1, slots.get(0).getId(), "Il primo slot dovrebbe avere ID 1");
-        assertEquals(2, slots.get(1).getId(), "Il secondo slot dovrebbe avere ID 2");
-        assertEquals(3, slots.get(2).getId(), "Il terzo slot dovrebbe avere ID 3");
-        assertEquals(4, slots.get(3).getId(), "Il quarto slot dovrebbe avere ID 4");
+    @RepeatedTest(5)
+    void shouldReturnNullWhenSQLExceptionOccursInRetrieveById(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Errore DB"));
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveById(1);
+
+        assertNull(result);
+        verify(mockDataSource).getConnection();
+    }
+
+    // -----------------------------------------------------------
+    // TEST: retrieveByProiezione()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnSlotWhenProiezioneHasValidSlot(RepetitionInfo repetitionInfo) throws Exception {
+        Proiezione mockProiezione = mock(Proiezione.class);
+        Slot mockSlot = new Slot(2, Time.valueOf("16:00:00"));
+        when(mockProiezione.getOrarioProiezione()).thenReturn(mockSlot);
+
+        Time oraInizio = Time.valueOf("16:00:00");
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getInt("id")).thenReturn(2);
+        when(mockResultSet.getTime("ora_inizio")).thenReturn(oraInizio);
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveByProiezione(mockProiezione);
+
+        assertNotNull(result);
+        assertEquals(2, result.getId());
+        assertEquals(oraInizio, result.getOraInizio());
+        verify(mockPreparedStatement).setInt(1, 2);
+        verify(mockPreparedStatement).executeQuery();
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenProiezioneIsNull(RepetitionInfo repetitionInfo) {
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveByProiezione(null);
+        assertNull(result);
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenProiezioneSlotIsNull(RepetitionInfo repetitionInfo) {
+        Proiezione mockProiezione = mock(Proiezione.class);
+        when(mockProiezione.getOrarioProiezione()).thenReturn(null);
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveByProiezione(mockProiezione);
+
+        assertNull(result);
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenSQLExceptionOccursInRetrieveByProiezione(RepetitionInfo repetitionInfo) throws Exception {
+        Proiezione mockProiezione = mock(Proiezione.class);
+        Slot mockSlot = new Slot(4, Time.valueOf("20:00:00"));
+
+        when(mockProiezione.getOrarioProiezione()).thenReturn(mockSlot);
+
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("DB Error"));
+
+        SlotDAO dao = new SlotDAO();
+        Slot result = dao.retrieveByProiezione(mockProiezione);
+
+        assertNull(result);
+        verify(mockDataSource).getConnection();
+    }
+
+    // -----------------------------------------------------------
+    // TEST: retrieveAllSlots()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnListOfSlotsWhenQuerySucceeds(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+
+        when(mockResultSet.next()).thenReturn(true, true, false);
+        when(mockResultSet.getInt("id")).thenReturn(1, 2);
+        when(mockResultSet.getTime("ora_inizio"))
+                .thenReturn(Time.valueOf("10:00:00"), Time.valueOf("12:00:00"));
+
+        SlotDAO dao = new SlotDAO();
+        List<Slot> result = dao.retrieveAllSlots();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals(Time.valueOf("10:00:00"), result.get(0).getOraInizio());
+        assertEquals(Time.valueOf("12:00:00"), result.get(1).getOraInizio());
+        verify(mockPreparedStatement).executeQuery();
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnEmptyListWhenNoResultsFound(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        SlotDAO dao = new SlotDAO();
+        List<Slot> result = dao.retrieveAllSlots();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnEmptyListWhenSQLExceptionOccursInRetrieveAllSlots(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenThrow(new SQLException("Errore SQL"));
+
+        SlotDAO dao = new SlotDAO();
+        List<Slot> result = dao.retrieveAllSlots();
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(mockDataSource).getConnection();
     }
 }
