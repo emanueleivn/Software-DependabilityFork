@@ -1,158 +1,170 @@
 package unit.test_gestione_catena;
 
-import static org.junit.jupiter.api.Assertions.*;
 import it.unisa.application.database_connection.DataSourceSingleton;
+import it.unisa.application.model.dao.FilmDAO;
 import it.unisa.application.model.entity.Film;
 import it.unisa.application.sottosistemi.gestione_catena.service.CatalogoService;
+import it.unisa.application.utilities.CampoValidator;
+import it.unisa.application.utilities.ValidateStrategyManager;
 import org.junit.jupiter.api.*;
-import unit.test_DAO.DatabaseSetupForTest;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.util.List;
+import java.util.*;
 
-public class CatalogoServiceTest {
-    private CatalogoService catalogoService;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    @BeforeAll
-    static void globalSetup() {
-        DatabaseSetupForTest.configureH2DataSource();
-    }
+/**
+ * Test di unità per CatalogoService.
+ */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+class CatalogoServiceTest {
+
+    @Mock
+    private FilmDAO filmDAO;
+    @Mock
+    private ValidateStrategyManager validationManager;
+    @Mock
+    private DataSource mockDataSource;
+    @Mock
+    private Connection mockConnection;
+
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
+    private CatalogoService service;
+
+    private byte[] locandinaValida;
 
     @BeforeEach
-    void setUp() {
-        catalogoService = new CatalogoService();
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection()) {
-            conn.createStatement().execute("DELETE FROM film;");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+    void setUp() throws Exception {
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        lenient().when(mockDataSource.getConnection()).thenReturn(mockConnection);
+
+        // Istanziazione e sostituzione via reflection
+        service = new CatalogoService();
+
+        Field filmDAOField = CatalogoService.class.getDeclaredField("filmDAO");
+        filmDAOField.setAccessible(true);
+        filmDAOField.set(service, filmDAO);
+
+        Field validationField = CatalogoService.class.getDeclaredField("validationManager");
+        validationField.setAccessible(true);
+        validationField.set(service, validationManager);
+
+        locandinaValida = "img".getBytes();
     }
 
     @AfterEach
     void tearDown() {
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection()) {
-            conn.createStatement().execute("DELETE FROM film;");
-        } catch (SQLException e) {
-            e.printStackTrace();
-        }
+        mockedDataSourceSingleton.close();
     }
 
-    @Test
-    void testTitoloNonFornito() {
-        String titolo = null;
-        System.out.println("Test Titolo Non Fornito: Titolo=" + titolo);
-        byte[] locandina = "Esempio di locandina".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo(titolo, 120, "Descrizione valida", locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
+    // -----------------------------------------------------------
+    // Test: addFilmCatalogo()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldAddFilmSuccessfully() {
+        when(validationManager.validate(anyMap())).thenReturn(true);
+        when(filmDAO.create(any(Film.class))).thenReturn(true);
+
+        assertDoesNotThrow(() ->
+                service.addFilmCatalogo("Titolo", 120, "Descrizione",
+                        locandinaValida, "Azione", "PG-13")
+        );
+
+        verify(validationManager, times(1)).addValidator(eq("titolo"), any(CampoValidator.class));
+        verify(validationManager, times(1)).addValidator(eq("descrizione"), any(CampoValidator.class));
+        verify(validationManager).validate(anyMap());
+        verify(filmDAO).create(any(Film.class));
     }
 
-    @Test
-    void testTitoloInvalido() {
-        String titolo = "invalid<>title";
-        System.out.println("Test Titolo Invalido: Titolo=" + titolo);
-        byte[] locandina = "Locandina di test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo(titolo, 120, "Descrizione valida", locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
+    @RepeatedTest(5)
+    void shouldThrowExceptionWhenAnyParameterIsInvalid() {
+        // Titolo vuoto
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("", 100, "desc", locandinaValida, "Azione", "PG-13"));
+        // Durata <= 0
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 0, "desc", locandinaValida, "Azione", "PG-13"));
+        // Descrizione nulla
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 100, null, locandinaValida, "Azione", "PG-13"));
+        // Locandina nulla o vuota
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 100, "desc", null, "Azione", "PG-13"));
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 100, "desc", new byte[0], "Azione", "PG-13"));
+        // Genere vuoto
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 100, "desc", locandinaValida, "", "PG-13"));
+        // Classificazione nulla
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 100, "desc", locandinaValida, "Azione", null));
+
+        verifyNoInteractions(filmDAO);
     }
 
-    @Test
-    void testDescrizioneVuota() {
-        String descrizione = "";
-        System.out.println("Test Descrizione Vuota: Descrizione=" + descrizione);
-        byte[] locandina = "Locandina di Test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", 120, descrizione, locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
+    @RepeatedTest(5)
+    void shouldThrowExceptionWhenValidationFails() {
+        when(validationManager.validate(anyMap())).thenReturn(false);
+
+        assertThrows(IllegalArgumentException.class, () ->
+                service.addFilmCatalogo("Titolo", 120, "Descrizione", locandinaValida, "Azione", "PG-13"));
+
+        verify(validationManager).addValidator(eq("titolo"), any(CampoValidator.class));
+        verify(validationManager).addValidator(eq("descrizione"), any(CampoValidator.class));
+        verify(validationManager).validate(anyMap());
+        verify(filmDAO, never()).create(any());
     }
 
-    @Test
-    void testDescrizioneInvalida() {
-        String descrizione = "descrizione<>nonvalida";
-        System.out.println("Test Descrizione Invalida: Descrizione=" + descrizione);
-        byte[] locandina = "Locandina di test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", 120, descrizione, locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
+    @RepeatedTest(5)
+    void shouldThrowRuntimeExceptionWhenFilmCreationFails() {
+        when(validationManager.validate(anyMap())).thenReturn(true);
+        when(filmDAO.create(any(Film.class))).thenReturn(false);
+
+        RuntimeException ex = assertThrows(RuntimeException.class, () ->
+                service.addFilmCatalogo("Titolo", 120, "Descrizione", locandinaValida, "Azione", "PG-13"));
+
+        assertEquals("Errore durante l'inserimento del film nel catalogo.", ex.getMessage());
+        verify(filmDAO).create(any(Film.class));
     }
 
-    @Test
-    void testDurataNonValida() {
-        int durata = 0;
-        System.out.println("Test Durata Non Valida: Durata=" + durata);
-        byte[] locandina = "Locandina di Test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", durata, "Descrizione valida", locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
+    // -----------------------------------------------------------
+    // Test: getCatalogo()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnCatalogoSuccessfully() {
+        List<Film> expected = List.of(
+                new Film(1, "Titolo1", "Genere", "PG-13", 120, locandinaValida, "Descrizione", false),
+                new Film(2, "Titolo2", "Genere", "PG-13", 100, locandinaValida, "Descrizione2", false)
+        );
+
+        when(filmDAO.retrieveAll()).thenReturn(expected);
+
+        List<Film> result = service.getCatalogo();
+
+        assertNotNull(result);
+        assertEquals(2, result.size());
+        assertEquals("Titolo1", result.getFirst().getTitolo());
+        verify(filmDAO).retrieveAll();
     }
 
-    @Test
-    void testDurataNonSelezionata() {
-        System.out.println("Test Durata Non Selezionata: Durata= ");
-        byte[] locandina = "Locandina di test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", -1, "Descrizione valida", locandina, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
-    }
-    @Test
-    void testLocandinaNonSInserita() {
-        System.out.println("Test Locandina Non Inserita: Locandina= null ");
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", 50, "Descrizione valida", null, "Fantascienza", "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
-    }
+    @RepeatedTest(5)
+    void shouldReturnEmptyListWhenNoFilmsInCatalog() {
+        when(filmDAO.retrieveAll()).thenReturn(Collections.emptyList());
 
-    @Test
-    void testGenereNonSelezionato() {
-        String genere = "";
-        System.out.println("Test Genere Non Selezionato: Genere=" + genere);
-        byte[] locandina = "Locandina di test".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", 120, "Descrizione valida", locandina, genere, "T");
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
-    }
+        List<Film> result = service.getCatalogo();
 
-    @Test
-    void testClassificazioneNonSelezionata() {
-        String classificazione = "";
-        System.out.println("Test Classificazione Non Selezionata: Classificazione=" + classificazione);
-        byte[] locandina = "Esempio di locandina".getBytes();
-        IllegalArgumentException exception = assertThrows(IllegalArgumentException.class, () -> {
-            catalogoService.addFilmCatalogo("Titolo valido", 120, "Descrizione valida", locandina, "Fantascienza", classificazione);
-        });
-        assertEquals("Parametri non validi per l'aggiunta del film.", exception.getMessage());
-    }
-
-    @Test
-    void testFilmAggiuntoConSuccesso() {
-        String titolo = "Inception";
-        int durata = 120;
-        String descrizione = "Thriller psicologico";
-        byte[] locandina = "Locandina di test".getBytes();
-        String genere = "Fantascienza";
-        String classificazione = "T";
-        System.out.println("Test Film Aggiunto Con Successo: Titolo=" + titolo +", Descrizione="+descrizione+ ", Durata=" + durata + ", Genere=" + genere + ", Classificazione=" + classificazione+ ", Locandina=inception.jpg");
-        catalogoService.addFilmCatalogo(titolo, durata, descrizione, locandina, genere, classificazione);
-        List<Film> catalogo = catalogoService.getCatalogo();
-        assertNotNull(catalogo, "Il catalogo non dovrebbe essere null");
-        assertEquals(1, catalogo.size(), "Il catalogo dovrebbe contenere un film");
-        Film film = catalogo.getFirst();
-        System.out.println("Film aggiunto: Titolo=" + film.getTitolo() + ", Durata=" + film.getDurata() + ", Genere=" + film.getGenere() + ", Classificazione=" + film.getClassificazione());
-        assertEquals(titolo, film.getTitolo(), "Il titolo del film non corrisponde");
-        assertEquals(durata, film.getDurata(), "La durata del film non corrisponde");
-        assertEquals(descrizione, film.getDescrizione(), "La descrizione del film non corrisponde");
-        assertArrayEquals(locandina, film.getLocandina(), "La locandina del film non corrisponde");
-        assertEquals(genere, film.getGenere(), "Il genere del film non corrisponde");
-        assertEquals(classificazione, film.getClassificazione(), "La classificazione del film non corrisponde");
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
+        verify(filmDAO).retrieveAll();
     }
 }

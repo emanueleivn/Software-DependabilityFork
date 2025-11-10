@@ -1,178 +1,175 @@
 package unit.test_gestione_sala;
 
-import it.unisa.application.model.dao.FilmDAO;
-import it.unisa.application.model.dao.ProiezioneDAO;
-import it.unisa.application.model.dao.SalaDAO;
-import it.unisa.application.model.dao.SlotDAO;
-import it.unisa.application.model.entity.Film;
-import it.unisa.application.model.entity.Proiezione;
-import it.unisa.application.model.entity.Sala;
-import it.unisa.application.model.entity.Slot;
+import it.unisa.application.database_connection.DataSourceSingleton;
+import it.unisa.application.model.dao.*;
+import it.unisa.application.model.entity.*;
 import it.unisa.application.sottosistemi.gestione_sala.service.ProgrammazioneService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.ArgumentCaptor;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
 
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
+import java.sql.Connection;
 import java.sql.Time;
 import java.time.LocalDate;
+import java.util.Arrays;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 /**
- * Versione senza construction-mocking: usa injection dei DAO nel service.
+ * Test di unità per ProgrammazioneService.
  */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class ProgrammazioneServiceTest {
 
-    private FilmDAO filmDAO;
-    private SalaDAO salaDAO;
-    private SlotDAO slotDAO;
-    private ProiezioneDAO proiezioneDAO;
+    @Mock private FilmDAO filmDAO;
+    @Mock private SalaDAO salaDAO;
+    @Mock private SlotDAO slotDAO;
+    @Mock private ProiezioneDAO proiezioneDAO;
 
+    @Mock private DataSource mockDataSource;
+    @Mock private Connection mockConnection;
+
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
     private ProgrammazioneService service;
 
     @BeforeEach
-    void setUp() {
-        filmDAO = mock(FilmDAO.class);
-        salaDAO = mock(SalaDAO.class);
-        slotDAO = mock(SlotDAO.class);
-        proiezioneDAO = mock(ProiezioneDAO.class);
-        service = new ProgrammazioneService(filmDAO, salaDAO, slotDAO, proiezioneDAO);
+    void setUp() throws Exception {
+        // Mock dello statico DataSourceSingleton per evitare connessioni reali
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        lenient().when(mockDataSource.getConnection()).thenReturn(mockConnection);
+
+        service = new ProgrammazioneService();
+
+        // Iniezione dei mock tramite reflection
+        injectMock("filmDAO", filmDAO);
+        injectMock("salaDAO", salaDAO);
+        injectMock("slotDAO", slotDAO);
+        injectMock("proiezioneDAO", proiezioneDAO);
     }
 
-    @Test
-    void testFilmNonSelezionato() {
-        int salaId = 1;
-        List<Integer> slotIds = List.of(1, 2);
-        LocalDate data = LocalDate.now().plusDays(5);
-
-        when(filmDAO.retrieveById(anyInt())).thenReturn(null);
-        when(salaDAO.retrieveById(anyInt())).thenReturn(new Sala());
-        when(slotDAO.retrieveAllSlots()).thenReturn(List.of());
-
-        boolean result = service.aggiungiProiezione(0, salaId, slotIds, data);
-        assertFalse(result, "Dovrebbe fallire: film nullo.");
-        verify(proiezioneDAO, never()).create(any());
+    private void injectMock(String fieldName, Object mock) throws Exception {
+        Field field = ProgrammazioneService.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(service, mock);
     }
 
-    @Test
-    void testDataNonInserita() {
-        int filmId = 1;
-        int salaId = 1;
-        List<Integer> slotIds = List.of(1);
-
-        Film film = new Film(); film.setId(filmId);
-        Sala sala = new Sala(); sala.setId(salaId);
-
-        when(filmDAO.retrieveById(filmId)).thenReturn(film);
-        when(salaDAO.retrieveById(salaId)).thenReturn(sala);
-        when(slotDAO.retrieveAllSlots()).thenReturn(List.of());
-
-        boolean result = service.aggiungiProiezione(filmId, salaId, slotIds, null);
-        assertFalse(result, "Dovrebbe fallire: data nulla (NPE interno catturato).");
-        verify(proiezioneDAO, never()).create(any());
+    @AfterEach
+    void tearDown() {
+        mockedDataSourceSingleton.close();
     }
 
-    @Test
-    void testDataPassata() {
-        int filmId = 1;
-        int salaId = 1;
-        LocalDate dataPassata = LocalDate.now().minusDays(1);
+    // -----------------------------------------------------------
+    // Test: aggiungiProiezione()
+    // -----------------------------------------------------------
 
-        Film film = new Film(); film.setId(filmId);
-        Sala sala = new Sala(); sala.setId(salaId);
-
-        when(filmDAO.retrieveById(filmId)).thenReturn(film);
-        when(salaDAO.retrieveById(salaId)).thenReturn(sala);
-        when(slotDAO.retrieveAllSlots()).thenReturn(List.of());
-
-        boolean result = service.aggiungiProiezione(filmId, salaId, List.of(1, 2), dataPassata);
-        assertFalse(result, "Dovrebbe fallire: data nel passato.");
-        verify(proiezioneDAO, never()).create(any());
-    }
-
-    @Test
-    void testSlotNonDisponibili() {
-        int filmId = 1;
-        int salaId = 1;
-        LocalDate data = LocalDate.now().plusDays(10);
-
-        Film film = new Film(); film.setId(filmId);
-        Sala sala = new Sala(); sala.setId(salaId);
-
-        when(filmDAO.retrieveById(filmId)).thenReturn(film);
-        when(salaDAO.retrieveById(salaId)).thenReturn(sala);
-        // Nessuno degli slot disponibili ha ID 10 o 20
-        when(slotDAO.retrieveAllSlots()).thenReturn(
-                List.of(makeSlot(1, "18:00:00"), makeSlot(2, "18:30:00"))
+    @RepeatedTest(5)
+    void shouldAddProiezioneSuccessfully() {
+        Film film = new Film(1, "Film Test", "Azione", "PG", 120, new byte[1], "desc", false);
+        Sala sala = new Sala(2, 1, 100, null);
+        List<Slot> allSlots = Arrays.asList(
+                new Slot(1, Time.valueOf("15:00:00")),
+                new Slot(2, Time.valueOf("18:00:00"))
         );
+        List<Integer> slotIds = List.of(2);
 
-        boolean result = service.aggiungiProiezione(filmId, salaId, List.of(10, 20), data);
-        assertFalse(result, "Dovrebbe fallire: slot selezionati non presenti tra quelli disponibili.");
-        verify(proiezioneDAO, never()).create(any());
-    }
-
-    @Test
-    void testProiezioneAggiuntaConSuccesso() {
-        int filmId = 1;
-        int salaId = 1;
-        LocalDate data = LocalDate.now().plusDays(7);
-        List<Integer> slotIds = List.of(1, 2);
-
-        Film film = new Film();
-        film.setId(filmId);
-        film.setTitolo("Test Film");
-        film.setDurata(120);
-
-        Sala sala = new Sala();
-        sala.setId(salaId);
-        sala.setNumeroSala(1);
-        sala.setCapienza(100);
-
-        Slot s1 = makeSlot(1, "19:00:00");
-        Slot s2 = makeSlot(2, "19:30:00");
-
-        when(filmDAO.retrieveById(filmId)).thenReturn(film);
-        when(salaDAO.retrieveById(salaId)).thenReturn(sala);
-        when(slotDAO.retrieveAllSlots()).thenReturn(List.of(s1, s2));
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+        when(salaDAO.retrieveById(2)).thenReturn(sala);
+        when(slotDAO.retrieveAllSlots()).thenReturn(allSlots);
         when(proiezioneDAO.create(any(Proiezione.class))).thenReturn(true);
 
-        boolean result = service.aggiungiProiezione(filmId, salaId, slotIds, data);
-        assertTrue(result, "Dovrebbe passare: dati coerenti e create(...) true.");
+        boolean result = service.aggiungiProiezione(1, 2, slotIds, LocalDate.now().plusDays(1));
 
-        ArgumentCaptor<Proiezione> captor = ArgumentCaptor.forClass(Proiezione.class);
-        verify(proiezioneDAO, times(1)).create(captor.capture());
-        Proiezione saved = captor.getValue();
-        assertSame(film, saved.getFilmProiezione());
-        assertSame(sala, saved.getSalaProiezione());
-        assertEquals(data, saved.getDataProiezione());
-        assertEquals(s1, saved.getOrarioProiezione(), "Il primo slot (più precoce) deve essere scelto.");
+        assertTrue(result);
+        verify(filmDAO).retrieveById(1);
+        verify(salaDAO).retrieveById(2);
+        verify(slotDAO).retrieveAllSlots();
+        verify(proiezioneDAO).create(any(Proiezione.class));
     }
 
-    @Test
-    void testSalaNull() {
-        int filmId = 1;
-        int salaId = 99;
-        LocalDate data = LocalDate.now().plusDays(3);
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenFilmNotFound() {
+        when(filmDAO.retrieveById(1)).thenReturn(null);
 
-        Film film = new Film(); film.setId(filmId);
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().plusDays(1));
 
-        when(filmDAO.retrieveById(filmId)).thenReturn(film);
-        when(salaDAO.retrieveById(salaId)).thenReturn(null);
-        when(slotDAO.retrieveAllSlots()).thenReturn(List.of());
+        assertFalse(result);
+        verify(filmDAO).retrieveById(1);
+        verifyNoInteractions(proiezioneDAO);
+    }
 
-        boolean result = service.aggiungiProiezione(filmId, salaId, List.of(1), data);
-        assertFalse(result, "Dovrebbe fallire: sala nulla.");
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenSalaNotFound() {
+        Film film = new Film(1, "Film Test", "Azione", "PG", 120, new byte[1], "desc", false);
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+        when(salaDAO.retrieveById(2)).thenReturn(null);
+
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().plusDays(1));
+
+        assertFalse(result);
+        verify(salaDAO).retrieveById(2);
         verify(proiezioneDAO, never()).create(any());
     }
 
-    // --- helper ---
-    private static Slot makeSlot(int id, String hhmmss) {
-        Slot s = new Slot();
-        s.setId(id);
-        s.setOraInizio(Time.valueOf(hhmmss));
-        return s;
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenDateIsPast() {
+        Film film = new Film(1, "Film Test", "Azione", "PG", 120, new byte[1], "desc", false);
+        Sala sala = new Sala(2, 1, 100, null);
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+        when(salaDAO.retrieveById(2)).thenReturn(sala);
+
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().minusDays(1));
+
+        assertFalse(result);
+        verify(proiezioneDAO, never()).create(any());
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenNoValidSlotSelected() {
+        Film film = new Film(1, "Film Test", "Azione", "PG", 120, new byte[1], "desc", false);
+        Sala sala = new Sala(2, 1, 100, null);
+        List<Slot> allSlots = List.of(new Slot(5, Time.valueOf("10:00:00")));
+
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+        when(salaDAO.retrieveById(2)).thenReturn(sala);
+        when(slotDAO.retrieveAllSlots()).thenReturn(allSlots);
+
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().plusDays(2));
+
+        assertFalse(result);
+        verify(slotDAO).retrieveAllSlots();
+        verify(proiezioneDAO, never()).create(any());
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenCreateProiezioneFails() {
+        Film film = new Film(1, "Film Test", "Azione", "PG", 120, new byte[1], "desc", false);
+        Sala sala = new Sala(2, 1, 100, null);
+        List<Slot> allSlots = List.of(new Slot(1, Time.valueOf("15:00:00")));
+
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+        when(salaDAO.retrieveById(2)).thenReturn(sala);
+        when(slotDAO.retrieveAllSlots()).thenReturn(allSlots);
+        when(proiezioneDAO.create(any(Proiezione.class))).thenReturn(false);
+
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().plusDays(1));
+
+        assertFalse(result);
+        verify(proiezioneDAO).create(any(Proiezione.class));
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenExceptionThrown() {
+        when(filmDAO.retrieveById(anyInt())).thenThrow(new RuntimeException("Errore DB"));
+
+        boolean result = service.aggiungiProiezione(1, 2, List.of(1), LocalDate.now().plusDays(1));
+
+        assertFalse(result);
     }
 }

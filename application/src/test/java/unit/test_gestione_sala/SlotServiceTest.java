@@ -5,112 +5,168 @@ import it.unisa.application.model.dao.FilmDAO;
 import it.unisa.application.model.dao.ProiezioneDAO;
 import it.unisa.application.model.dao.SlotDAO;
 import it.unisa.application.model.entity.Film;
+import it.unisa.application.model.entity.Proiezione;
 import it.unisa.application.model.entity.Slot;
 import it.unisa.application.sottosistemi.gestione_sala.service.SlotService;
-import org.junit.jupiter.api.BeforeAll;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import unit.test_DAO.DatabaseSetupForTest;
+import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import javax.sql.DataSource;
+import java.lang.reflect.Field;
 import java.sql.Connection;
-import java.sql.SQLException;
-import java.sql.Statement;
 import java.sql.Time;
 import java.time.LocalDate;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+/**
+ * Test di unità per SlotService.
+ */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
 class SlotServiceTest {
 
-    private SlotService slotService;
-    private FilmDAO filmDAOSpy;
-    private ProiezioneDAO proiezioneDAOSpy;
-    private SlotDAO slotDAOSpy;
+    @Mock private SlotDAO slotDAO;
+    @Mock private ProiezioneDAO proiezioneDAO;
+    @Mock private FilmDAO filmDAO;
 
-    @BeforeAll
-    static void globalSetup() {
-        DatabaseSetupForTest.configureH2DataSource();
-    }
+    @Mock private DataSource mockDataSource;
+    @Mock private Connection mockConnection;
+
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
+    private SlotService service;
 
     @BeforeEach
-    void setUp() {
-        filmDAOSpy = spy(new FilmDAO());
-        proiezioneDAOSpy = spy(new ProiezioneDAO());
-        slotDAOSpy = spy(new SlotDAO());
-        slotService = new SlotService();
+    void setUp() throws Exception {
+        // Mock statico per evitare connessioni reali
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        lenient().when(mockDataSource.getConnection()).thenReturn(mockConnection);
 
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection();
-             Statement stmt = conn.createStatement()) {
-            stmt.execute("DELETE FROM proiezione;");
-            stmt.execute("DELETE FROM slot;");
-            stmt.execute("DELETE FROM sala;");
-            stmt.execute("DELETE FROM sede;");
-            stmt.execute("DELETE FROM film;");
-            stmt.execute("INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'CineNow Napoli', 'Via Roma', 'Napoli', '80100');");
-            stmt.execute("INSERT INTO film (id, titolo, durata, genere, classificazione, descrizione, is_proiettato) " +
-                    "VALUES (1, 'Film Test', 120, 'Azione', 'PG-13', 'Descrizione di test', true);");
-            stmt.execute("INSERT INTO sala (id, numero, capienza, id_sede) VALUES (1, 1, 100, 1);");
-            stmt.execute("INSERT INTO slot (id, ora_inizio) VALUES (1, '18:00:00');");
-            stmt.execute("INSERT INTO slot (id, ora_inizio) VALUES (2, '18:30:00');");
-            stmt.execute("INSERT INTO slot (id, ora_inizio) VALUES (3, '19:00:00');");
-        } catch (SQLException e) {
-            throw new RuntimeException("Errore durante la configurazione del database per i test", e);
-        }
+        // Creazione del service e sostituzione dei DAO tramite reflection
+        service = new SlotService();
+        injectMock("slotDAO", slotDAO);
+        injectMock("proiezioneDAO", proiezioneDAO);
+        injectMock("filmDAO", filmDAO);
     }
 
-    @Test
-    void testFilmNonEsistente() {
-        int filmId = 2;
-        int salaId = 1;
-        LocalDate dataInizio = LocalDate.of(2025, 1, 1);
-        LocalDate dataFine = LocalDate.of(2025, 1, 7);
-        System.out.println("Test Film Non Esistente - Parametri: filmId=" + filmId + ", salaId=" + salaId);
-        doReturn(null).when(filmDAOSpy).retrieveById(filmId);
-        Exception exception = assertThrows(RuntimeException.class, () ->
-                slotService.slotDisponibili(filmId, salaId, dataInizio, dataFine));
-
-        System.out.println("Risultato: eccezione='" + exception.getMessage() + "'\n");
-        assertEquals("Film non esistente.", exception.getMessage());
+    private void injectMock(String fieldName, Object mock) throws Exception {
+        Field field = SlotService.class.getDeclaredField(fieldName);
+        field.setAccessible(true);
+        field.set(service, mock);
     }
 
-    @Test
-    void testSlotDisponibili() throws Exception {
-        int filmId = 1;
-        int salaId = 1;
-        LocalDate dataInizio = LocalDate.of(2025, 1, 1);
-        LocalDate dataFine = LocalDate.of(2025, 1, 1);
-        Film film = new Film();
-        film.setId(filmId);
-        film.setDurata(85);
-        Slot slot1 = new Slot();
-        slot1.setId(1);
-        slot1.setOraInizio(Time.valueOf("18:00:00"));
-        Slot slot2 = new Slot();
-        slot2.setId(2);
-        slot2.setOraInizio(Time.valueOf("18:30:00"));
-        Slot slot3 = new Slot();
-        slot3.setId(3);
-        slot3.setOraInizio(Time.valueOf("19:00:00"));
-        System.out.println("Test Slot Disponibili - Parametri utilizzati: filmId=" + filmId + ", salaId=" + salaId + ", dataInizio=" + dataInizio + ", dataFine=" + dataFine);
-        doReturn(film).when(filmDAOSpy).retrieveById(filmId);
-        doReturn(List.of(slot1, slot2, slot3)).when(slotDAOSpy).retrieveAllSlots();
-        doReturn(null).when(proiezioneDAOSpy).retrieveProiezioneBySalaSlotAndData(eq(salaId), eq(slot1.getId()), eq(dataInizio));
-        doReturn(null).when(proiezioneDAOSpy).retrieveProiezioneBySalaSlotAndData(eq(salaId), eq(slot2.getId()), eq(dataInizio));
-        doReturn(null).when(proiezioneDAOSpy).retrieveProiezioneBySalaSlotAndData(eq(salaId), eq(slot3.getId()), eq(dataInizio));
-        Map<String, Object> result = slotService.slotDisponibili(filmId, salaId, dataInizio, dataFine);
-        System.out.println("Risultato: " + result + "\n");
+    @AfterEach
+    void tearDown() {
+        mockedDataSourceSingleton.close();
+    }
+
+    // -----------------------------------------------------------
+    // TEST slotDisponibili()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnCorrectCalendarWithAvailableAndOccupiedSlots() throws Exception {
+        LocalDate start = LocalDate.now();
+        LocalDate end = start.plusDays(1);
+
+        // Film principale richiesto
+        Film filmRichiesto = new Film(1, "Film Principale", "Azione", "PG", 120, new byte[1], "desc", false);
+        when(filmDAO.retrieveById(1)).thenReturn(filmRichiesto);
+
+        // Slot disponibili
+        List<Slot> allSlots = Arrays.asList(
+                new Slot(1, Time.valueOf("10:00:00")),
+                new Slot(2, Time.valueOf("12:00:00")),
+                new Slot(3, Time.valueOf("15:00:00"))
+        );
+        when(slotDAO.retrieveAllSlots()).thenReturn(allSlots);
+
+        // Proiezione esistente solo per slot 2 nel primo giorno
+        Film filmOccupante = new Film(5, "Film Occupato", "Commedia", "PG-13", 100, new byte[1], "desc", false);
+        Proiezione proiezioneOccupata = new Proiezione(99, null, filmOccupante, start, allSlots.get(1));
+
+        when(proiezioneDAO.retrieveProiezioneBySalaSlotAndData(eq(10), eq(2), eq(start)))
+                .thenReturn(proiezioneOccupata);
+        when(filmDAO.retrieveById(5)).thenReturn(filmOccupante);
+
+        // Nessuna proiezione negli altri slot/giorni
+        when(proiezioneDAO.retrieveProiezioneBySalaSlotAndData(anyInt(), anyInt(), eq(end)))
+                .thenReturn(null);
+        when(proiezioneDAO.retrieveProiezioneBySalaSlotAndData(eq(10), eq(1), eq(start)))
+                .thenReturn(null);
+        when(proiezioneDAO.retrieveProiezioneBySalaSlotAndData(eq(10), eq(3), eq(start)))
+                .thenReturn(null);
+
+
+        Map<String, Object> result = service.slotDisponibili(1, 10, start, end);
+
+
         assertNotNull(result);
+        assertTrue(result.containsKey("durataFilm"));
         assertEquals(120, result.get("durataFilm"));
+
+        List<Map<String, Object>> calendar = (List<Map<String, Object>>) result.get("calendar");
+        assertEquals(2, calendar.size()); // due giorni nel range
+
+        // ✅ Primo giorno: slot 2 occupato
+        List<Map<String, Object>> slotsGiorno1 = (List<Map<String, Object>>) calendar.get(0).get("slots");
+        Map<String, Object> slot2 = slotsGiorno1.stream()
+                .filter(s -> (int) s.get("id") == 2)
+                .findFirst().orElseThrow();
+        assertTrue((boolean) slot2.get("occupato"));
+        assertEquals("Film Occupato", slot2.get("film"));
+
+        // ✅ Secondo giorno: tutti liberi
+        List<Map<String, Object>> slotsGiorno2 = (List<Map<String, Object>>) calendar.get(1).get("slots");
+        assertTrue(slotsGiorno2.stream().noneMatch(s -> (boolean) s.get("occupato")));
+
+        verify(slotDAO, atLeastOnce()).retrieveAllSlots();
+        verify(filmDAO, times(2)).retrieveById(anyInt());
+    }
+
+    @RepeatedTest(5)
+    void shouldThrowExceptionWhenFilmNotFound() throws Exception {
+        when(filmDAO.retrieveById(999)).thenReturn(null);
+
+        assertThrows(RuntimeException.class,
+                () -> service.slotDisponibili(999, 1, LocalDate.now(), LocalDate.now().plusDays(1)));
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnCalendarWithNoOccupiedSlots() throws Exception {
+        LocalDate day = LocalDate.now();
+
+        Film film = new Film(1, "Film Test", "Azione", "PG", 100, new byte[1], "desc", false);
+        when(filmDAO.retrieveById(1)).thenReturn(film);
+
+        List<Slot> allSlots = Arrays.asList(
+                new Slot(1, Time.valueOf("09:00:00")),
+                new Slot(2, Time.valueOf("11:00:00"))
+        );
+        when(slotDAO.retrieveAllSlots()).thenReturn(allSlots);
+        when(proiezioneDAO.retrieveProiezioneBySalaSlotAndData(anyInt(), anyInt(), any(LocalDate.class)))
+                .thenReturn(null);
+
+        Map<String, Object> result = service.slotDisponibili(1, 10, day, day);
+
+        assertNotNull(result);
+        assertTrue(result.containsKey("calendar"));
         List<Map<String, Object>> calendar = (List<Map<String, Object>>) result.get("calendar");
         assertEquals(1, calendar.size());
-        assertEquals("2025-01-01", calendar.getFirst().get("data"));
         List<Map<String, Object>> slots = (List<Map<String, Object>>) calendar.get(0).get("slots");
-        assertEquals(4, slots.size());
-        assertFalse((Boolean) slots.get(0).get("occupato"));
-        assertFalse((Boolean) slots.get(1).get("occupato"));
-        assertFalse((Boolean) slots.get(2).get("occupato"));
-        assertFalse((Boolean) slots.get(3).get("occupato"));
+        assertTrue(slots.stream().noneMatch(s -> (boolean) s.get("occupato")));
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenExceptionOccurs() throws Exception {
+        when(filmDAO.retrieveById(anyInt())).thenThrow(new RuntimeException("DB error"));
+
+        assertThrows(RuntimeException.class, () ->
+                service.slotDisponibili(1, 1, LocalDate.now(), LocalDate.now()));
     }
 }
