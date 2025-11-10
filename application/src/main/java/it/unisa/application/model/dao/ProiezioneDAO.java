@@ -7,7 +7,7 @@ import javax.sql.DataSource;
 import java.sql.*;
 import java.sql.Date;
 import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.*;
 import java.util.logging.Logger;
 
@@ -277,7 +277,7 @@ public class ProiezioneDAO {
                 LocalDate dataProiezione = rs.getDate("data").toLocalDate();
                 Film film = new Film(rs.getInt("id_film"), "", "", "", 0, new byte[0], "", true);
                 Sala sala = new Sala(rs.getInt("id_sala"), 0, 0, new Sede(0));
-                Slot slot = new Slot(rs.getInt("id_orario"), Time.valueOf(LocalDateTime.now().toString()));
+                Slot slot = new Slot(rs.getInt("id_orario"), Time.valueOf(LocalTime.now()));
 
                 return new Proiezione(proiezioneId, sala, film, dataProiezione, slot);
             }
