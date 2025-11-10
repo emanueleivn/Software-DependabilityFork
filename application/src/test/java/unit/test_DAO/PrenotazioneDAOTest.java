@@ -1,110 +1,211 @@
 package unit.test_DAO;
 
 import it.unisa.application.database_connection.DataSourceSingleton;
-import it.unisa.application.model.dao.PrenotazioneDAO;
+import it.unisa.application.model.dao.*;
 import it.unisa.application.model.entity.*;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.*;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import javax.sql.DataSource;
+import java.sql.*;
+import java.sql.Date;
+import java.time.LocalDate;
+import java.util.*;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-import java.util.List;
+/**
+ * Test di unità per PrenotazioneDAO con mock statici e costruttivi.
+ */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+class PrenotazioneDAOTest {
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-public class PrenotazioneDAOTest {
-    private PrenotazioneDAO prenotazioneDAO;
+    @Mock
+    private DataSource mockDataSource;
+    @Mock
+    private Connection mockConnection;
+    @Mock
+    private PreparedStatement mockPreparedStatement;
+    @Mock
+    private ResultSet mockResultSet;
 
-    @BeforeAll
-    public void setupDatabase() {
-        DatabaseSetupForTest.configureH2DataSource();
-        prenotazioneDAO = new PrenotazioneDAO();
-        prepareTestData();
-    }
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
 
     @BeforeEach
-    public void prepareTestData() {
-        try {
-            String cleanupSQL = """
-                        DELETE FROM occupa;
-                        DELETE FROM prenotazione;
-                        DELETE FROM posto_proiezione;
-                        DELETE FROM proiezione;
-                        DELETE FROM slot;
-                        DELETE FROM sala;
-                        DELETE FROM sede;
-                        DELETE FROM film;
-                        DELETE FROM cliente;
-                        DELETE FROM utente;
-                    """;
-            DataSourceSingleton.getInstance().getConnection().createStatement().executeUpdate(cleanupSQL);
-            String setupSQL = """
-                        INSERT INTO utente (email, password, ruolo) VALUES ('test@example.com', 'password', 'cliente');
-                        INSERT INTO cliente (email, nome, cognome) VALUES ('test@example.com', 'Test', 'Test');
-                        INSERT INTO film (id, titolo, genere, classificazione, durata, locandina, descrizione, is_proiettato) 
-                        VALUES (1, 'Test Film', 'Drama', 'PerTutti', 120, 'path', 'Descrizione film', TRUE);
-                        INSERT INTO sede (id, nome, via, citta, cap) VALUES (1, 'Sede Test', 'Via Test', 'Citta Test', '12345');
-                        INSERT INTO sala (id, id_sede, numero, capienza) VALUES (1, 1, 1, 100);
-                        INSERT INTO slot (id, ora_inizio) VALUES (1, '18:00:00');
-                        INSERT INTO proiezione (id, data, id_film, id_sala, id_orario) 
-                        VALUES (1, '2023-01-01', 1, 1, 1);
-                    """;
-            DataSourceSingleton.getInstance().getConnection().createStatement().executeUpdate(setupSQL);
-        } catch (Exception e) {
-            throw new RuntimeException("Errore nella preparazione dei dati di test", e);
+    void setUp() throws Exception {
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
+    }
+
+    @AfterEach
+    void tearDown() {
+        mockedDataSourceSingleton.close();
+    }
+
+    // -----------------------------------------------------------
+    // Test del metodo create()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldCreatePrenotazioneSuccessfully(RepetitionInfo info) throws Exception {
+        Cliente cliente = new Cliente("mail@test.com", "pwd", "Mario", "Rossi");
+        Proiezione proiezione = new Proiezione(1);
+        Prenotazione prenotazione = new Prenotazione(0, cliente, proiezione);
+
+        when(mockConnection.prepareStatement(anyString(), anyInt())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeUpdate()).thenReturn(1);
+
+        ResultSet mockKeys = mock(ResultSet.class);
+        when(mockPreparedStatement.getGeneratedKeys()).thenReturn(mockKeys);
+        when(mockKeys.next()).thenReturn(true);
+        when(mockKeys.getInt(1)).thenReturn(42);
+
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        boolean result = dao.create(prenotazione);
+
+        assertTrue(result);
+        assertEquals(42, prenotazione.getId());
+        verify(mockPreparedStatement).setString(1, "mail@test.com");
+        verify(mockPreparedStatement).setInt(2, 1);
+        verify(mockPreparedStatement).executeUpdate();
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenSQLExceptionInCreate(RepetitionInfo info) throws Exception {
+        Cliente cliente = new Cliente("mail@test.com", "pwd", "Mario", "Rossi");
+        Proiezione proiezione = new Proiezione(1);
+        Prenotazione prenotazione = new Prenotazione(0, cliente, proiezione);
+
+        when(mockConnection.prepareStatement(anyString(), anyInt())).thenThrow(new SQLException("DB error"));
+
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        boolean result = dao.create(prenotazione);
+
+        assertFalse(result);
+        verify(mockDataSource).getConnection();
+    }
+
+    // -----------------------------------------------------------
+    // Test del metodo retrieveById()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnPrenotazioneWhenFound(RepetitionInfo info) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getInt("id")).thenReturn(5);
+        when(mockResultSet.getString("email_cliente")).thenReturn("cliente@mail.com");
+        when(mockResultSet.getInt("id_proiezione")).thenReturn(10);
+
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        Prenotazione result = dao.retrieveById(5);
+
+        assertNotNull(result);
+        assertEquals(5, result.getId());
+        assertEquals("cliente@mail.com", result.getCliente().getEmail());
+        assertEquals(10, result.getProiezione().getId());
+        verify(mockPreparedStatement).setInt(1, 5);
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenPrenotazioneNotFound(RepetitionInfo info) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        Prenotazione result = dao.retrieveById(99);
+
+        assertNull(result);
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenSQLExceptionInRetrieveById(RepetitionInfo info) throws Exception {
+        when(mockDataSource.getConnection()).thenThrow(new SQLException("Errore DB"));
+
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        Prenotazione result = dao.retrieveById(1);
+
+        assertNull(result);
+    }
+
+    // -----------------------------------------------------------
+    // Test del metodo retrieveAllByCliente()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnPrenotazioniWhenFound(RepetitionInfo info) throws Exception {
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+
+        // Prima riga di risultato
+        when(mockResultSet.next()).thenReturn(true, false);
+        when(mockResultSet.getInt("prenotazione_id")).thenReturn(1);
+        when(mockResultSet.getInt("proiezione_id")).thenReturn(10);
+        when(mockResultSet.getDate("data_proiezione")).thenReturn(Date.valueOf(LocalDate.now()));
+        when(mockResultSet.getTime("ora_inizio")).thenReturn(Time.valueOf("20:30:00"));
+        when(mockResultSet.getInt("film_id")).thenReturn(100);
+        when(mockResultSet.getString("film_titolo")).thenReturn("Film Test");
+        when(mockResultSet.getInt("durata")).thenReturn(120);
+        when(mockResultSet.getInt("sala_id")).thenReturn(5);
+        when(mockResultSet.getInt("numero_sala")).thenReturn(2);
+        when(mockResultSet.getString("fila_posto")).thenReturn("A");
+        when(mockResultSet.getInt("numero_posto")).thenReturn(1);
+
+        // Mock delle new SedeDAO() e SalaDAO()
+        Sede sede = new Sede(1, "Sede Test", "Via Roma");
+        Sala sala = new Sala(5, 2, 100, sede);
+        try (
+                MockedConstruction<SedeDAO> mockedSedeDAO = mockConstruction(
+                        SedeDAO.class,
+                        (mock, context) -> when(mock.retrieveById(anyInt())).thenReturn(sede)
+                );
+                MockedConstruction<SalaDAO> mockedSalaDAO = mockConstruction(
+                        SalaDAO.class,
+                        (mock, context) -> when(mock.retrieveById(anyInt())).thenReturn(sala)
+                )
+        ) {
+            PrenotazioneDAO dao = new PrenotazioneDAO();
+            List<Prenotazione> result = dao.retrieveAllByCliente(cliente);
+
+            assertNotNull(result);
+            assertFalse(result.isEmpty());
+            assertEquals(1, result.size());
+            verify(mockPreparedStatement).setString(1, cliente.getEmail());
         }
     }
 
-    @Test
-    public void testCreatePrenotazione() {
-        Cliente cliente = new Cliente();
-        cliente.setEmail("test@example.com");
-        Proiezione proiezione = new Proiezione();
-        proiezione.setId(1);
-        Prenotazione prenotazione = new Prenotazione();
-        prenotazione.setCliente(cliente);
-        prenotazione.setProiezione(proiezione);
+    @RepeatedTest(5)
+    void shouldReturnEmptyListWhenSQLExceptionOccurs(RepetitionInfo info) throws Exception {
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+        when(mockDataSource.getConnection()).thenThrow(new SQLException("Errore DB"));
 
-        System.out.println("Dati per la creazione: Cliente Email  " + cliente.getEmail()+", Proiezione ID: " + proiezione.getId());
-        boolean result = prenotazioneDAO.create(prenotazione);
-        assertTrue(result, "La prenotazione dovrebbe essere creata correttamente");
-        assertNotNull(prenotazione.getId(), "L'ID della prenotazione dovrebbe essere generato");
-        System.out.println("Prenotazione Creata con ID: " + prenotazione.getId());
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        List<Prenotazione> result = dao.retrieveAllByCliente(cliente);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 
-    @Test
-    public void testRetrievePrenotazioneById() {
-        Cliente cliente = new Cliente();
-        cliente.setEmail("test@example.com");
-        Proiezione proiezione = new Proiezione();
-        proiezione.setId(1);
-        Prenotazione prenotazione = new Prenotazione();
-        prenotazione.setCliente(cliente);
-        prenotazione.setProiezione(proiezione);
-        prenotazioneDAO.create(prenotazione);
-        System.out.println("ID Prenotazione Creata per il test: " + prenotazione.getId());
-        Prenotazione retrievedPrenotazione = prenotazioneDAO.retrieveById(prenotazione.getId());
-        assertNotNull(retrievedPrenotazione, "La prenotazione con ID dovrebbe esistere");
-        System.out.println("Prenotazione Recuperata:");
-        System.out.println("Cliente Email: " + retrievedPrenotazione.getCliente().getEmail()+ ", Proiezione ID: " + retrievedPrenotazione.getProiezione().getId());
-    }
+    @RepeatedTest(5)
+    void shouldReturnEmptyListWhenNoResults(RepetitionInfo info) throws Exception {
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
 
-    @Test
-    public void testRetrieveAllByCliente() {
-        Cliente cliente = new Cliente();
-        cliente.setEmail("test@example.com");
-        Proiezione proiezione = new Proiezione();
-        proiezione.setId(1);
-        Prenotazione prenotazione = new Prenotazione();
-        prenotazione.setCliente(cliente);
-        prenotazione.setProiezione(proiezione);
-        prenotazioneDAO.create(prenotazione);
-        System.out.println("Cliente Email per testing: " + cliente.getEmail());
-        List<Prenotazione> prenotazioni = prenotazioneDAO.retrieveAllByCliente(cliente);
-        assertNotNull(prenotazioni, "La lista di prenotazioni non dovrebbe essere null");
-        assertEquals(1, prenotazioni.size(), "Dovrebbe esserci una sola prenotazione per il cliente");
-        for (Prenotazione p : prenotazioni) {
-            System.out.println("Prenotazione ID: " + p.getId() +
-                    ", Cliente Email: " + p.getCliente().getEmail() +
-                    ", Proiezione ID: " + p.getProiezione().getId());
-        }
+        PrenotazioneDAO dao = new PrenotazioneDAO();
+        List<Prenotazione> result = dao.retrieveAllByCliente(cliente);
+
+        assertNotNull(result);
+        assertTrue(result.isEmpty());
     }
 }

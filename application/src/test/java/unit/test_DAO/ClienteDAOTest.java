@@ -1,73 +1,175 @@
 package unit.test_DAO;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 import it.unisa.application.database_connection.DataSourceSingleton;
 import it.unisa.application.model.dao.ClienteDAO;
+import it.unisa.application.model.dao.UtenteDAO;
+import it.unisa.application.model.dao.PrenotazioneDAO;
 import it.unisa.application.model.entity.Cliente;
+import it.unisa.application.model.entity.Prenotazione;
 import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.MockedConstruction;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.sql.Connection;
-import java.sql.SQLException;
+import javax.sql.DataSource;
+import java.sql.*;
+import java.util.Collections;
+import java.util.List;
 
-import org.junit.jupiter.api.*;
 import static org.junit.jupiter.api.Assertions.*;
-import java.sql.Connection;
-import java.sql.SQLException;
+import static org.mockito.Mockito.*;
 
-public class ClienteDAOTest {
-    private ClienteDAO clienteDAO;
-    @BeforeAll
-    static void globalSetup() {
-        DatabaseSetupForTest.configureH2DataSource();
-    }
+/**
+ * Test di unità per ClienteDAO con mock delle istanze interne di UtenteDAO e PrenotazioneDAO.
+ */
+@ExtendWith(MockitoExtension.class)
+@TestInstance(TestInstance.Lifecycle.PER_METHOD)
+class ClienteDAOTest {
+
+    @Mock
+    private DataSource mockDataSource;
+
+    @Mock
+    private Connection mockConnection;
+
+    @Mock
+    private PreparedStatement mockPreparedStatement;
+
+    @Mock
+    private ResultSet mockResultSet;
+
+    private MockedStatic<DataSourceSingleton> mockedDataSourceSingleton;
 
     @BeforeEach
-    void setUp() {
-        clienteDAO = new ClienteDAO();
+    void setUp() throws Exception {
+        // Mock statico di DataSourceSingleton.getInstance()
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+
+        when(mockDataSource.getConnection()).thenReturn(mockConnection);
     }
 
     @AfterEach
     void tearDown() {
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection()) {
-            conn.createStatement().execute("DELETE FROM cliente;");
-            conn.createStatement().execute("DELETE FROM utente;");
-            conn.createStatement().execute("DELETE FROM prenotazione;");
-        } catch (SQLException e) {
-            e.printStackTrace();
+        mockedDataSourceSingleton.close();
+
+    }
+
+    // -----------------------------------------------------------
+    // Test del metodo create()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldCreateClienteSuccessfully(RepetitionInfo repetitionInfo) throws Exception {
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeUpdate()).thenReturn(1);
+        doNothing().when(mockConnection).commit();
+
+        // Mock della new UtenteDAO() all’interno del metodo
+        try (MockedConstruction<UtenteDAO> mockedUtenteDAO = mockConstruction(
+                UtenteDAO.class,
+                (mock, context) -> when(mock.create(any())).thenReturn(true)
+        )) {
+            ClienteDAO dao = new ClienteDAO();
+            boolean result = dao.create(cliente);
+
+            assertTrue(result, "create() deve restituire true (repetition " + repetitionInfo.getCurrentRepetition() + ")");
+            verify(mockConnection).commit();
+            verify(mockPreparedStatement, atLeast(1)).executeUpdate();
+
+            // Verifica che sia stata creata almeno un'istanza di UtenteDAO
+            assertEquals(1, mockedUtenteDAO.constructed().size());
         }
     }
 
-    @Test
-    @DisplayName("Creazione di un cliente")
-    void testCreateCliente() {
-        String uniqueEmail = "cliente_" + System.currentTimeMillis() + "@example.com";
-        Cliente cliente = new Cliente(uniqueEmail, "hashedPassword", "Mario", "Rossi");
-        System.out.println("Email: " + uniqueEmail);
-        System.out.println("Nome: " + cliente.getNome());
-        System.out.println("Cognome: " + cliente.getCognome());
-        System.out.println("Password: " + cliente.getPassword());
-        assertTrue(clienteDAO.create(cliente), "Creazione cliente fallita");
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenSQLExceptionDuringInsert(RepetitionInfo repetitionInfo) throws Exception {
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeUpdate()).thenThrow(new SQLException("Errore SQL"));
+        doNothing().when(mockConnection).rollback();
+        ClienteDAO dao = new ClienteDAO();
+        boolean result = dao.create(cliente);
+
+        assertFalse(result, "create() deve restituire false in caso di SQLException (repetition " + repetitionInfo.getCurrentRepetition() + ")");
+        verify(mockConnection).rollback();
+
     }
 
-    @Test
-    @DisplayName("Recupero cliente tramite email e password")
-    void testRetrieveByEmail() {
-        String uniqueEmail = "cliente_" + System.currentTimeMillis() + "@example.com";
-        Cliente cliente = new Cliente(uniqueEmail, "hashedPassword", "Mario", "Rossi");
-        clienteDAO.create(cliente);
-        System.out.println("Cliente creato:");
-        System.out.println("Email utilizzata: " + uniqueEmail);
-        System.out.println("Password utilizzata: hashedPassword");
-        Cliente retrieved = clienteDAO.retrieveByEmail(uniqueEmail, "hashedPassword");
-        assertNotNull(retrieved, "Il cliente non è stato trovato");
-        System.out.println("Dati recuperati:");
-        System.out.println("Email: " + retrieved.getEmail());
-        System.out.println("Nome: " + retrieved.getNome());
-        System.out.println("Cognome: " + retrieved.getCognome());
-        assertEquals(uniqueEmail, retrieved.getEmail(), "Email non corrispondente");
-        assertEquals("Mario", retrieved.getNome(), "Nome non corrispondente");
-        assertEquals("Rossi", retrieved.getCognome(), "Cognome non corrispondente");
+    @RepeatedTest(5)
+    void shouldReturnFalseWhenConnectionFails(RepetitionInfo repetitionInfo) throws Exception {
+        mockedDataSourceSingleton.close();
+        mockedDataSourceSingleton = mockStatic(DataSourceSingleton.class);
+        mockedDataSourceSingleton.when(DataSourceSingleton::getInstance).thenReturn(mockDataSource);
+        when(mockDataSource.getConnection()).thenThrow(new SQLException("Connessione fallita"));
+
+        Cliente cliente = new Cliente("cliente@mail.com", "pwd", "Mario", "Rossi");
+        ClienteDAO dao = new ClienteDAO();
+
+        boolean result = dao.create(cliente);
+
+        assertFalse(result, "create() deve restituire false se la connessione fallisce (repetition " + repetitionInfo.getCurrentRepetition() + ")");
+    }
+
+    // -----------------------------------------------------------
+    // Test del metodo retrieveByEmail()
+    // -----------------------------------------------------------
+
+    @RepeatedTest(5)
+    void shouldReturnClienteWhenFound(RepetitionInfo repetitionInfo) throws Exception {
+        String email = "cliente@mail.com";
+        String password = "pwd";
+
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(true);
+        when(mockResultSet.getString("nome")).thenReturn("Mario");
+        when(mockResultSet.getString("cognome")).thenReturn("Rossi");
+
+        List<Prenotazione> mockPrenotazioni = Collections.emptyList();
+
+        // Mock della new PrenotazioneDAO() all’interno del metodo
+        try (MockedConstruction<PrenotazioneDAO> mockedPrenotazioneDAO = mockConstruction(
+                PrenotazioneDAO.class,
+                (mock, context) -> when(mock.retrieveAllByCliente(any())).thenReturn(mockPrenotazioni)
+        )) {
+            ClienteDAO dao = new ClienteDAO();
+            Cliente result = dao.retrieveByEmail(email, password);
+
+            assertNotNull(result, "retrieveByEmail deve restituire un cliente valido (repetition " + repetitionInfo.getCurrentRepetition() + ")");
+            assertEquals(email, result.getEmail());
+            assertEquals("Mario", result.getNome());
+            assertEquals("Rossi", result.getCognome());
+            assertEquals(mockPrenotazioni, result.storicoOrdini());
+
+            // Verifica che PrenotazioneDAO sia stato istanziato
+            assertEquals(1, mockedPrenotazioneDAO.constructed().size());
+        }
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenNoResultFound(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockConnection.prepareStatement(anyString())).thenReturn(mockPreparedStatement);
+        when(mockPreparedStatement.executeQuery()).thenReturn(mockResultSet);
+        when(mockResultSet.next()).thenReturn(false);
+
+        ClienteDAO dao = new ClienteDAO();
+        Cliente result = dao.retrieveByEmail("notfound@mail.com", "pwd");
+
+        assertNull(result, "retrieveByEmail deve restituire null se non viene trovato alcun cliente (repetition " + repetitionInfo.getCurrentRepetition() + ")");
+    }
+
+    @RepeatedTest(5)
+    void shouldReturnNullWhenSQLExceptionOccurs(RepetitionInfo repetitionInfo) throws Exception {
+        when(mockDataSource.getConnection()).thenThrow(new SQLException("Errore DB"));
+
+        ClienteDAO dao = new ClienteDAO();
+        Cliente result = dao.retrieveByEmail("error@mail.com", "pwd");
+
+        assertNull(result, "retrieveByEmail deve restituire null in caso di SQLException (repetition " + repetitionInfo.getCurrentRepetition() + ")");
     }
 }
-
