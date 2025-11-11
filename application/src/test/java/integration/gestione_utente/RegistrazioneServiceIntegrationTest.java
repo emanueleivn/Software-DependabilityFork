@@ -1,134 +1,183 @@
 package integration.gestione_utente;
 
-import it.unisa.application.database_connection.DataSourceSingleton;
-import it.unisa.application.model.dao.ClienteDAO;
-import it.unisa.application.model.dao.UtenteDAO;
+import integration.BaseIntegrationTest;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.sottosistemi.gestione_utente.service.RegistrazioneService;
 import it.unisa.application.utilities.PasswordHash;
-import org.junit.jupiter.api.*;
-import unit.test_DAO.DatabaseSetupForTest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.RepeatedTest;
+import org.mockito.MockedStatic;
 
-import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.mockStatic;
 
-@TestInstance(TestInstance.Lifecycle.PER_CLASS)
-class RegistrazioneServiceIntegrationTest {
+class RegistrazioneServiceIT extends BaseIntegrationTest {
 
-    private RegistrazioneService registrazioneService;
-    private ClienteDAO clienteDAO;
-    private UtenteDAO utenteDAO;
-
-    @BeforeAll
-    void setupDatabase() {
-        DatabaseSetupForTest.configureH2DataSource();
-        System.out.println("Setup iniziale del database completato.");
-    }
+    private RegistrazioneService service;
 
     @BeforeEach
-    void setupService() {
-        clienteDAO = new ClienteDAO();
-        utenteDAO = new UtenteDAO();
-        registrazioneService = new RegistrazioneService(utenteDAO, clienteDAO);
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection()) {
-            conn.createStatement().execute("DELETE FROM cliente;");
-            conn.createStatement().execute("DELETE FROM utente;");
-        } catch (SQLException e) {
-            fail("Errore durante la pulizia del database: " + e.getMessage());
+    void setUp() {
+        service = new RegistrazioneService();
+    }
+
+    @RepeatedTest(5)
+    @DisplayName("Email nel formato non corretto → registrazione fallisce")
+    void registrazione_emailFormatoErrato() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "email-senza-chiocciola",
+                    "Password123!",
+                    "Mario",
+                    "Rossi"
+            );
+            assertNull(result, "Email nel formato errato deve restituire null");
         }
     }
 
-    @Test
-    void testInvalidEmailFormat() {
-        System.out.println("Email di test = example@<>");
-        Cliente result = registrazioneService.registrazione("example@<>", "Password123!", "Mario", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per email in formato errato.");
-        System.out.println("Registrazione fallita come previsto.");
-    }
+    @RepeatedTest(5)
+    @DisplayName("Email già esistente → registrazione fallisce")
+    void registrazione_emailGiaEsistente() throws SQLException {
+        execute("INSERT INTO utente (email, password, ruolo) VALUES ('gia@email.com', 'HASHED_pw', 'cliente')");
+        execute("INSERT INTO cliente (email, nome, cognome) VALUES ('gia@email.com', 'Luca', 'Bianchi')");
 
-    @Test
-    void testEmailAlreadyExists() {
-        String email = "mariorossi@gmail.com";
-        String passwordHash = PasswordHash.hash("Password123!");
-        try (Connection conn = DataSourceSingleton.getInstance().getConnection()) {
-            conn.createStatement().executeUpdate("INSERT INTO utente (email, password, ruolo) VALUES ('" + email + "', '" + passwordHash + "', 'cliente');");
-            conn.createStatement().executeUpdate("INSERT INTO cliente (email, nome, cognome) VALUES ('" + email + "', 'Mario', 'Rossi');");
-        } catch (SQLException e) {
-            fail("Errore durante l'inserimento dei dati di test: " + e.getMessage());
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "gia@email.com",
+                    "Password123!",
+                    "Mario",
+                    "Rossi"
+            );
+            assertNull(result, "Registrazione con email già esistente deve restituire null");
         }
-        System.out.println("Inserimento utente: Email=" + email+", Password=" + "Password123!");
-        System.out.println("Email di test. Email=" + email);
-        Cliente result = registrazioneService.registrazione(email, "Password123!", "Mario", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per email già registrata.");
-        System.out.println("Registrazione fallita come previsto.");
     }
 
-    @Test
-    void testEmailNotProvided() {
-        System.out.println("Email di test. Email=");
-        Cliente result = registrazioneService.registrazione(null, "Password123!", "Mario", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per email mancante.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Email vuota → registrazione fallisce")
+    void registrazione_emailVuota() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "",
+                    "Password123!",
+                    "Mario",
+                    "Rossi"
+            );
+            assertNull(result, "Registrazione con email vuota deve restituire null");
+        }
     }
 
-    @Test
-    void testInvalidPasswordFormat() {
-        System.out.println("Password di test = pass<");
-        Cliente result = registrazioneService.registrazione("test@example.com", "pass<", "Mario", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per password in formato errato.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Password troppo corta o non valida → registrazione fallisce")
+    void registrazione_passwordNonValida() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "test@email.com",
+                    "abc",
+                    "Mario",
+                    "Rossi"
+            );
+            assertNull(result, "Password non valida deve restituire null");
+        }
     }
 
-    @Test
-    void testPasswordNotProvided() {
-        System.out.println("PAssword di test. Password=");
-        Cliente result = registrazioneService.registrazione("test@example.com", null, "Mario", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per password mancante.");
-        System.out.println("Test completato: Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Password mancante → registrazione fallisce")
+    void registrazione_passwordMancante() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "utente@email.com",
+                    "",
+                    "Mario",
+                    "Rossi"
+            );
+            assertNull(result, "Password mancante deve restituire null");
+        }
     }
 
-    @Test
-    void testInvalidNameFormat() {
-        System.out.println("Nome di test. Nome=<");
-        Cliente result = registrazioneService.registrazione("test@example.com", "Password123!", "<", "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per nome in formato errato.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Nome nel formato non valido → registrazione fallisce")
+    void registrazione_nomeNonValido() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "utente@email.com",
+                    "Password123!",
+                    "M4r10",
+                    "Rossi"
+            );
+            assertNull(result, "Nome non valido deve restituire null");
+        }
     }
 
-    @Test
-    void testNameNotProvided() {
-        System.out.println("Nome di test. Nome=");
-        Cliente result = registrazioneService.registrazione("test@example.com", "Password123!", null, "Rossi");
-        assertNull(result, "Registrazione dovrebbe fallire per nome mancante.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Nome mancante → registrazione fallisce")
+    void registrazione_nomeMancante() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "utente@email.com",
+                    "Password123!",
+                    "",
+                    "Rossi"
+            );
+            assertNull(result, "Nome mancante deve restituire null");
+        }
     }
 
-    @Test
-    void testInvalidSurnameFormat() {
-        System.out.println("Cognome di test. Cognome=<");
-        Cliente result = registrazioneService.registrazione("test@example.com", "Password123!", "Mario", "<");
-        assertNull(result, "Registrazione dovrebbe fallire per cognome in formato errato.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Cognome nel formato non valido → registrazione fallisce")
+    void registrazione_cognomeNonValido() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "utente@email.com",
+                    "Password123!",
+                    "Mario",
+                    "R0$$i"
+            );
+            assertNull(result, "Cognome non valido deve restituire null");
+        }
     }
 
-    @Test
-    void testSurnameNotProvided() {
-        System.out.println("Cognome di test. Cognome=");
-        Cliente result = registrazioneService.registrazione("test@example.com", "Password123!", "Mario", null);
-        assertNull(result, "Registrazione dovrebbe fallire per cognome mancante.");
-        System.out.println("Registrazione fallita come previsto.");
+    @RepeatedTest(5)
+    @DisplayName("Cognome mancante → registrazione fallisce")
+    void registrazione_cognomeMancante() {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            Cliente result = service.registrazione(
+                    "utente@email.com",
+                    "Password123!",
+                    "Mario",
+                    ""
+            );
+            assertNull(result, "Cognome mancante deve restituire null");
+        }
     }
 
-    @Test
-    void testSuccessfulRegistration() {
-        System.out.println("Utente di test. Email=test@example.com ,Password=ValidPassword123!, Nome=Mario, Cognome=Rossi");
-        Cliente result = registrazioneService.registrazione("test@example.com", "ValidPassword123!", "Mario", "Rossi");
-        assertNotNull(result, "Registrazione dovrebbe avere successo.");
-        assertEquals("test@example.com", result.getEmail(), "L'email registrata non corrisponde.");
-        assertEquals("Mario", result.getNome(), "Il nome registrato non corrisponde.");
-        assertEquals("Rossi", result.getCognome(), "Il cognome registrato non corrisponde.");
-        System.out.println("Registrazione avvenuta con successo.");
+    @RepeatedTest(5)
+    @DisplayName("Registrazione valida → Cliente creato e salvato nel DB")
+    void registrazione_valida_ok() throws SQLException {
+        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
+            mock.when(() -> PasswordHash.hash("Password123!")).thenReturn("HASHED_pw");
+
+            Cliente result = service.registrazione(
+                    "nuovo@email.com",
+                    "Password123!",
+                    "Mario",
+                    "Rossi"
+            );
+
+            assertNotNull(result, "Registrazione valida deve restituire un Cliente");
+            assertEquals("nuovo@email.com", result.getEmail());
+            assertEquals("Mario", result.getNome());
+            assertEquals("Rossi", result.getCognome());
+
+            try (var stmt = connection.prepareStatement("SELECT * FROM utente WHERE email=?")) {
+                stmt.setString(1, "nuovo@email.com");
+                ResultSet rs = stmt.executeQuery();
+                assertTrue(rs.next(), "L'utente deve essere salvato nel DB");
+                assertEquals("HASHED_pw", rs.getString("password"));
+                assertEquals("cliente", rs.getString("ruolo"));
+            }
+        }
     }
 }
