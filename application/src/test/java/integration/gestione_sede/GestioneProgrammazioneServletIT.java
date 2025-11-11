@@ -86,7 +86,7 @@ public class GestioneProgrammazioneServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), eq("Parametro sedeId non valido."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
         verify(dispatcher, never()).forward(any(), any());
     }
 

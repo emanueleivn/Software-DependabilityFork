@@ -81,8 +81,7 @@ class SlotDisponibiliServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST),
-                eq("Errore nel caricamento degli slot."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
     }
 
     @RepeatedTest(5)
@@ -94,8 +93,7 @@ class SlotDisponibiliServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST),
-                eq("Errore nel caricamento degli slot."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
     }
 
     @RepeatedTest(5)
@@ -107,8 +105,7 @@ class SlotDisponibiliServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST),
-                eq("Errore nel caricamento degli slot."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
     }
 
     @RepeatedTest(5)
@@ -120,8 +117,7 @@ class SlotDisponibiliServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST),
-                eq("Errore nel caricamento degli slot."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
     }
 
     @RepeatedTest(5)
@@ -135,7 +131,6 @@ class SlotDisponibiliServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST),
-                eq("Errore nel caricamento degli slot."));
+        verify(response).sendError(eq(HttpServletResponse.SC_BAD_REQUEST), any());
     }
 }

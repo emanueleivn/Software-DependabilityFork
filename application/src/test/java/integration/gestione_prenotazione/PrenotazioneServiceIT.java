@@ -25,9 +25,6 @@ class PrenotazioneServiceIT extends BaseIntegrationTest {
     void setup() throws SQLException {
         service = new PrenotazioneService();
 
-        // ===============================
-        // SETUP DATABASE MINIMO REALE
-        // ===============================
         execute("INSERT INTO utente (email, password, ruolo) VALUES ('cliente@email.com', 'HASHED_pw', 'cliente');");
         execute("INSERT INTO cliente (email, nome, cognome) VALUES ('cliente@email.com', 'Mario', 'Rossi');");
 
@@ -39,7 +36,6 @@ class PrenotazioneServiceIT extends BaseIntegrationTest {
         execute("INSERT INTO proiezione (id, data, id_film, id_sala, id_orario) " +
                 "VALUES (1, CURRENT_DATE, 1, 1, 1);");
 
-        // Posti base
         execute("INSERT INTO posto (id_sala, fila, numero) VALUES (1, 'A', 1);");
         execute("INSERT INTO posto (id_sala, fila, numero) VALUES (1, 'A', 2);");
         execute("INSERT INTO posto (id_sala, fila, numero) VALUES (1, 'A', 3);");
@@ -49,9 +45,6 @@ class PrenotazioneServiceIT extends BaseIntegrationTest {
         execute("INSERT INTO posto_proiezione (id_sala, fila, numero, id_proiezione, stato) VALUES (1, 'A', 2, 1, TRUE);");
         execute("INSERT INTO posto_proiezione (id_sala, fila, numero, id_proiezione, stato) VALUES (1, 'A', 3, 1, TRUE);");
 
-        // ===============================
-        // OGGETTI ENTITY
-        // ===============================
         cliente = new Cliente("cliente@email.com", "HASHED_pw", "cliente", "Rossi");
         Film film = new Film(1, "Inception", "Sci-Fi", "T", 148, null, "Thriller", true);
         Sala sala = new Sala(1, 1, 100, null);

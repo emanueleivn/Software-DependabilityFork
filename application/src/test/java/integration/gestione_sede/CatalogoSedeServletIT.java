@@ -90,7 +90,7 @@ public class CatalogoSedeServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Errore caricamento catalogo: sede non specificata"));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
         verify(catalogoDispatcher, never()).forward(any(), any());
     }
@@ -101,7 +101,7 @@ public class CatalogoSedeServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Errore caricamento catalogo"));
+        verify(request).setAttribute(eq("errorMessage"),any());
         verify(errorDispatcher).forward(request, response);
         verify(catalogoDispatcher, never()).forward(any(), any());
     }

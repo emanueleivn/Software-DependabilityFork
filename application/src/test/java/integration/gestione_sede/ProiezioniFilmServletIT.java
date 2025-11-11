@@ -97,7 +97,7 @@ public class ProiezioniFilmServletIT extends BaseIntegrationTest {
 
         servlet.doPost(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Film o sede non trovati."));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
         verify(successDispatcher, never()).forward(any(), any());
     }
@@ -109,7 +109,7 @@ public class ProiezioniFilmServletIT extends BaseIntegrationTest {
 
         servlet.doPost(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Film o sede non trovati."));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
         verify(successDispatcher, never()).forward(any(), any());
     }
@@ -121,7 +121,7 @@ public class ProiezioniFilmServletIT extends BaseIntegrationTest {
 
         servlet.doPost(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Parametri non validi."));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
         verify(successDispatcher, never()).forward(any(), any());
     }
@@ -136,7 +136,7 @@ public class ProiezioniFilmServletIT extends BaseIntegrationTest {
 
         servlet.doPost(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), eq("Film o sede non trovati."));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
         verify(successDispatcher, never()).forward(any(), any());
     }

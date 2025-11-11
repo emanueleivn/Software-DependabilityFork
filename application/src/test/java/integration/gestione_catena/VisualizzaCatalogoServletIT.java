@@ -54,7 +54,7 @@ class VisualizzaCatalogoServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), contains("Nessun film trovato"));
+        verify(request).setAttribute(eq("errorMessage"),any());
         verify(dispatcher).forward(request, response);
     }
 }

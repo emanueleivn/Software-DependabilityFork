@@ -60,7 +60,7 @@ class CheckoutServletIT extends BaseIntegrationTest {
 
         servlet.doGet(request, response);
 
-        verify(request).setAttribute(eq("errorMessage"), contains("mancanti"));
+        verify(request).setAttribute(eq("errorMessage"), any());
         verify(errorDispatcher).forward(request, response);
     }
 

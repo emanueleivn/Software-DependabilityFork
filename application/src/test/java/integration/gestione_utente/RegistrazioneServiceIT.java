@@ -27,15 +27,13 @@ class RegistrazioneServiceIT extends BaseIntegrationTest {
     @RepeatedTest(5)
     @DisplayName("Email nel formato non corretto → registrazione fallisce")
     void registrazione_emailFormatoErrato() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "email-senza-chiocciola",
-                    "Password123!",
-                    "Mario",
-                    "Rossi"
-            );
-            assertNull(result, "Email nel formato errato deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "email-senza-chiocciola",
+                "Password123!",
+                "Mario",
+                "Rossi"
+        );
+        assertNull(result, "Email nel formato errato deve restituire null");
     }
 
     @RepeatedTest(5)
@@ -44,113 +42,97 @@ class RegistrazioneServiceIT extends BaseIntegrationTest {
         execute("INSERT INTO utente (email, password, ruolo) VALUES ('gia@email.com', 'HASHED_pw', 'cliente')");
         execute("INSERT INTO cliente (email, nome, cognome) VALUES ('gia@email.com', 'Luca', 'Bianchi')");
 
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "gia@email.com",
-                    "Password123!",
-                    "Mario",
-                    "Rossi"
-            );
-            assertNull(result, "Registrazione con email già esistente deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "gia@email.com",
+                "Password123!",
+                "Mario",
+                "Rossi"
+        );
+        assertNull(result, "Registrazione con email già esistente deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Email vuota → registrazione fallisce")
     void registrazione_emailVuota() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "",
-                    "Password123!",
-                    "Mario",
-                    "Rossi"
-            );
-            assertNull(result, "Registrazione con email vuota deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "",
+                "Password123!",
+                "Mario",
+                "Rossi"
+        );
+        assertNull(result, "Registrazione con email vuota deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Password troppo corta o non valida → registrazione fallisce")
     void registrazione_passwordNonValida() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "test@email.com",
-                    "abc",
-                    "Mario",
-                    "Rossi"
-            );
-            assertNull(result, "Password non valida deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "test@email.com",
+                "abc",
+                "Mario",
+                "Rossi"
+        );
+        assertNull(result, "Password non valida deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Password mancante → registrazione fallisce")
     void registrazione_passwordMancante() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "utente@email.com",
-                    "",
-                    "Mario",
-                    "Rossi"
-            );
-            assertNull(result, "Password mancante deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "utente@email.com",
+                "",
+                "Mario",
+                "Rossi"
+        );
+        assertNull(result, "Password mancante deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Nome nel formato non valido → registrazione fallisce")
     void registrazione_nomeNonValido() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "utente@email.com",
-                    "Password123!",
-                    "M4r10",
-                    "Rossi"
-            );
-            assertNull(result, "Nome non valido deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "utente@email.com",
+                "Password123!",
+                "M4r10",
+                "Rossi"
+        );
+        assertNull(result, "Nome non valido deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Nome mancante → registrazione fallisce")
     void registrazione_nomeMancante() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "utente@email.com",
-                    "Password123!",
-                    "",
-                    "Rossi"
-            );
-            assertNull(result, "Nome mancante deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "utente@email.com",
+                "Password123!",
+                "",
+                "Rossi"
+        );
+        assertNull(result, "Nome mancante deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Cognome nel formato non valido → registrazione fallisce")
     void registrazione_cognomeNonValido() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "utente@email.com",
-                    "Password123!",
-                    "Mario",
-                    "R0$$i"
-            );
-            assertNull(result, "Cognome non valido deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "utente@email.com",
+                "Password123!",
+                "Mario",
+                "R0$$i"
+        );
+        assertNull(result, "Cognome non valido deve restituire null");
     }
 
     @RepeatedTest(5)
     @DisplayName("Cognome mancante → registrazione fallisce")
     void registrazione_cognomeMancante() {
-        try (MockedStatic<PasswordHash> mock = mockStatic(PasswordHash.class)) {
-            Cliente result = service.registrazione(
-                    "utente@email.com",
-                    "Password123!",
-                    "Mario",
-                    ""
-            );
-            assertNull(result, "Cognome mancante deve restituire null");
-        }
+        Cliente result = service.registrazione(
+                "utente@email.com",
+                "Password123!",
+                "Mario",
+                ""
+        );
+        assertNull(result, "Cognome mancante deve restituire null");
     }
 
     @RepeatedTest(5)
