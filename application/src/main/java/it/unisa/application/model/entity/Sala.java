@@ -174,7 +174,6 @@ public class Sala {
         Proiezione proiezione = new Proiezione(id, this, film, data, slot);
         /*@ assert proiezione != null; @*/
         proiezione.setPostiProiezione(creaListaPosti(proiezione));
-        this.proiezioni.add(proiezione);
         return proiezioni;
     }
 

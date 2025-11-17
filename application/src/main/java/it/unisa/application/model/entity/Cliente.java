@@ -54,7 +54,7 @@ public class Cliente extends Utente {
     //@ ensures \result != null;
     //@ assignable \nothing;
     /*@ pure @*/
-    public List<Prenotazione> getPrenotazioni() { return prenotazioni; }
+    public List<Prenotazione> storicoOrdini() { return prenotazioni; }
 
     //@ public normal_behavior
     //@ requires prenotazioni != null;
