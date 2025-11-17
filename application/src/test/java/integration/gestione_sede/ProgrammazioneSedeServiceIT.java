@@ -1,6 +1,6 @@
 package integration.gestione_sede;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Film;
 import it.unisa.application.model.entity.Proiezione;
 import it.unisa.application.model.entity.Sede;
@@ -15,7 +15,7 @@ import java.util.Objects;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-public class ProgrammazioneSedeServiceIT extends BaseIntegrationTest {
+public class ProgrammazioneSedeServiceIT extends BaseIT {
 
     private ProgrammazioneSedeService service;
 

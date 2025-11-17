@@ -1,6 +1,6 @@
 package integration.gestione_catena;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_catena.view.VisualizzaCatalogoServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +12,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.*;
 
-class VisualizzaCatalogoServletIT extends BaseIntegrationTest {
+class VisualizzaCatalogoServletIT extends BaseIT {
 
     public static class TestableVisualizzaCatalogoServlet extends VisualizzaCatalogoServlet {
         @Override

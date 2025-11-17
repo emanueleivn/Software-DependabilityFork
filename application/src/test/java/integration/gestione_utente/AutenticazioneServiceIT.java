@@ -1,6 +1,6 @@
 package integration.gestione_utente;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.GestoreSede;
 import it.unisa.application.model.entity.Utente;
 import it.unisa.application.sottosistemi.gestione_utente.service.AutenticazioneService;
@@ -14,7 +14,7 @@ import java.sql.SQLException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mockStatic;
 
-class AutenticazioneServiceIT extends BaseIntegrationTest {
+class AutenticazioneServiceIT extends BaseIT {
 
     private AutenticazioneService service;
 

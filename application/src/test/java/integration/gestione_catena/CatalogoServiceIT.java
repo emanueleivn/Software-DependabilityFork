@@ -1,6 +1,6 @@
 package integration.gestione_catena;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Film;
 import it.unisa.application.sottosistemi.gestione_catena.service.CatalogoService;
 import org.junit.jupiter.api.BeforeEach;
@@ -12,7 +12,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class CatalogoServiceIT extends BaseIntegrationTest {
+class CatalogoServiceIT extends BaseIT {
 
     private CatalogoService service;
 

@@ -1,6 +1,6 @@
 package integration.gestione_sala;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_sala.service.SlotService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -12,7 +12,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class SlotServiceIT extends BaseIntegrationTest {
+class SlotServiceIT extends BaseIT {
 
     private SlotService service;
 

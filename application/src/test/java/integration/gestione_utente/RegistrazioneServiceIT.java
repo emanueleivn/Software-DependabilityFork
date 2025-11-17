@@ -1,6 +1,6 @@
 package integration.gestione_utente;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.sottosistemi.gestione_utente.service.RegistrazioneService;
 import it.unisa.application.utilities.PasswordHash;
@@ -15,7 +15,7 @@ import java.sql.SQLException;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.mockStatic;
 
-class RegistrazioneServiceIT extends BaseIntegrationTest {
+class RegistrazioneServiceIT extends BaseIT {
 
     private RegistrazioneService service;
 

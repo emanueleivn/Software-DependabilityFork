@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_prenotazione.view.CheckoutServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -10,7 +10,7 @@ import org.junit.jupiter.api.RepeatedTest;
 
 import static org.mockito.Mockito.*;
 
-class CheckoutServletIT extends BaseIntegrationTest {
+class CheckoutServletIT extends BaseIT {
 
     public static class TestableCheckoutServlet extends CheckoutServlet {
         @Override

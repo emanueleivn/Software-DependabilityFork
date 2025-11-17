@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_prenotazione.view.SceltaPostoServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -12,7 +12,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-class SceltaPostoServletIT extends BaseIntegrationTest {
+class SceltaPostoServletIT extends BaseIT {
 
     public static class TestableSceltaPostoServlet extends SceltaPostoServlet {
         @Override

@@ -1,6 +1,6 @@
 package integration.gestione_sede;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_sede.view.CatalogoSedeServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -14,7 +14,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-public class CatalogoSedeServletIT extends BaseIntegrationTest {
+public class CatalogoSedeServletIT extends BaseIT {
 
     public static class TestableCatalogoSedeServlet extends CatalogoSedeServlet {
         @Override

@@ -1,6 +1,6 @@
 package integration.gestione_catena;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_catena.view.AddFilmServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +17,7 @@ import java.sql.ResultSet;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class AddFilmServletIT extends BaseIntegrationTest {
+class AddFilmServletIT extends BaseIT {
 
     // Wrapper per testare i metodi protected
     public static class TestableAddFilmServlet extends AddFilmServlet {

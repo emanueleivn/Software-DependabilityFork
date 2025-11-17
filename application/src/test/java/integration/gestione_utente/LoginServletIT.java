@@ -1,6 +1,6 @@
 package integration.gestione_utente;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.GestoreSede;
 import it.unisa.application.model.entity.Utente;
 import it.unisa.application.sottosistemi.gestione_utente.view.LoginServlet;
@@ -17,7 +17,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-public class LoginServletIT extends BaseIntegrationTest {
+public class LoginServletIT extends BaseIT {
 
     public static class TestableLoginServlet extends LoginServlet {
         @Override

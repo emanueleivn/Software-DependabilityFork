@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.*;
 import it.unisa.application.sottosistemi.gestione_prenotazione.service.PrenotazioneService;
 import org.junit.jupiter.api.BeforeEach;
@@ -14,7 +14,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class PrenotazioneServiceIT extends BaseIntegrationTest {
+class PrenotazioneServiceIT extends BaseIT {
 
     private PrenotazioneService service;
     private Cliente cliente;

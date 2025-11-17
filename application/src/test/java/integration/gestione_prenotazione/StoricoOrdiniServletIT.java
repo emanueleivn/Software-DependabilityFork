@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.sottosistemi.gestione_prenotazione.view.StoricoOrdiniServlet;
 import jakarta.servlet.RequestDispatcher;
@@ -14,7 +14,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-class StoricoOrdiniServletIT extends BaseIntegrationTest {
+class StoricoOrdiniServletIT extends BaseIT {
 
     public static class TestableStoricoOrdiniServlet extends StoricoOrdiniServlet {
         @Override

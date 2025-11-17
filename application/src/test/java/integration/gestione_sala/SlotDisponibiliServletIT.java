@@ -1,6 +1,6 @@
 package integration.gestione_sala;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_sala.view.SlotDisponibiliServlet;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -17,7 +17,7 @@ import java.time.LocalDate;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class SlotDisponibiliServletIT extends BaseIntegrationTest {
+class SlotDisponibiliServletIT extends BaseIT {
 
     public static class TestableSlotDisponibiliServlet extends SlotDisponibiliServlet {
         @Override

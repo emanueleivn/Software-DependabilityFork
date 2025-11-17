@@ -1,6 +1,6 @@
 package integration.gestione_sala;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_sala.view.AggiungiProiezioneServlet;
 import jakarta.servlet.RequestDispatcher;
 import jakarta.servlet.ServletException;
@@ -15,7 +15,7 @@ import java.time.LocalDate;
 
 import static org.mockito.Mockito.*;
 
-class AggiungiProiezioneServletIT extends BaseIntegrationTest {
+class AggiungiProiezioneServletIT extends BaseIT {
 
     public static class TestableAggiungiProiezioneServlet extends AggiungiProiezioneServlet {
         @Override

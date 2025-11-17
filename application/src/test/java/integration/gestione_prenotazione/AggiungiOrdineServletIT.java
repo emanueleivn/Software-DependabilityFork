@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.sottosistemi.gestione_prenotazione.view.AggiungiOrdineServlet;
 import jakarta.servlet.RequestDispatcher;
@@ -15,7 +15,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-class AggiungiOrdineServletIT extends BaseIntegrationTest {
+class AggiungiOrdineServletIT extends BaseIT {
 
     public static class TestableAggiungiOrdineServlet extends AggiungiOrdineServlet {
         @Override

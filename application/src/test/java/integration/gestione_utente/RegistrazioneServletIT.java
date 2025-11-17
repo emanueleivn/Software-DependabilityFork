@@ -1,6 +1,6 @@
 package integration.gestione_utente;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.sottosistemi.gestione_utente.view.RegistrazioneServlet;
 import jakarta.servlet.RequestDispatcher;
@@ -17,7 +17,7 @@ import java.sql.SQLException;
 
 import static org.mockito.Mockito.*;
 
-public class RegistrazioneServletIT extends BaseIntegrationTest {
+public class RegistrazioneServletIT extends BaseIT {
 
     public static class TestableRegistrazioneServlet extends RegistrazioneServlet {
         @Override

@@ -1,6 +1,6 @@
 package integration.gestione_prenotazione;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.model.entity.Cliente;
 import it.unisa.application.model.entity.Prenotazione;
 import it.unisa.application.sottosistemi.gestione_prenotazione.service.StoricoOrdiniService;
@@ -13,7 +13,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class StoricoOrdiniServiceIT extends BaseIntegrationTest {
+class StoricoOrdiniServiceIT extends BaseIT {
 
     private StoricoOrdiniService service;
     private Cliente clienteConOrdini;

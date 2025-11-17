@@ -18,7 +18,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public abstract class BaseIntegrationTest {
+public abstract class BaseIT {
 
     protected static Connection connection;
 
@@ -27,12 +27,12 @@ public abstract class BaseIntegrationTest {
         Class.forName("org.h2.Driver");
 
         connection = DriverManager.getConnection(
-                "jdbc:h2:mem:cinenow;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false",
+                "jdbc:h2:mem:cinenow;MODE=MySQL;DATABASE_TO_UPPER=false",
                 "sa", ""
         );
 
         // Esecuzione script di creazione schema
-        try (InputStream is = BaseIntegrationTest.class.getClassLoader().getResourceAsStream("schema.sql")) {
+        try (InputStream is = BaseIT.class.getClassLoader().getResourceAsStream("schema.sql")) {
             if (is == null) {
                 throw new IllegalStateException("File schema.sql non trovato nel classpath (src/test/resources)");
             }
@@ -41,7 +41,7 @@ public abstract class BaseIntegrationTest {
 
         // H2 DataSource
         JdbcDataSource ds = new JdbcDataSource();
-        ds.setURL("jdbc:h2:mem:cinenow;MODE=MySQL;DB_CLOSE_DELAY=-1;DATABASE_TO_UPPER=false");
+        ds.setURL("jdbc:h2:mem:cinenow;MODE=MySQL;DATABASE_TO_UPPER=false");
         ds.setUser("sa");
         ds.setPassword("");
 

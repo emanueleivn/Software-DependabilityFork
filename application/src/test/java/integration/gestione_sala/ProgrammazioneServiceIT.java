@@ -1,6 +1,6 @@
 package integration.gestione_sala;
 
-import integration.BaseIntegrationTest;
+import integration.BaseIT;
 import it.unisa.application.sottosistemi.gestione_sala.service.ProgrammazioneService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.RepeatedTest;
@@ -15,7 +15,7 @@ import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.*;
 
-class ProgrammazioneServiceIT extends BaseIntegrationTest {
+class ProgrammazioneServiceIT extends BaseIT {
 
     private ProgrammazioneService service;
 
