@@ -93,7 +93,7 @@ public class ProgrammazioneSedeServiceIT extends BaseIT {
         assertTrue(programmazione.isEmpty());
     }
     // ========================================
-    // NUOVI TEST POST PIT
+    // NUOVI TEST POST MUTATION TESTING
     // ========================================
 
     /**
