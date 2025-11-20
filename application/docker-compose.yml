@@ -20,6 +20,9 @@ services:
 
   web:
     image: caiazzoantonio/cinenow:latest
+    build:
+      context: .
+      dockerfile: Dockerfile
     container_name: cinenow-web
     depends_on:
       db:
